@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Self
 
 from graphite_shim.config import Config
+from graphite_shim.exception import UserError
 
 STORE_FILE = ".graphite_shim/store.json"
 
@@ -37,6 +38,16 @@ class Store:
             "branches": self.branches,
         }
         (self.config.git_dir / STORE_FILE).write_text(json.dumps(data))
+
+    def get_parent(self, branch: str) -> str:
+        """
+        Get the parent of the given branch.
+
+        Throws an error if branch is trunk.
+        """
+        if branch == self.config.trunk:
+            raise UserError("Cannot get the parent of the trunk branch.")
+        return self.branches[branch]
 
     def get_ancestors(self, branch: str) -> Sequence[str]:
         """
