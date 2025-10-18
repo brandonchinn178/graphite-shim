@@ -12,6 +12,7 @@ import typing
 from pathlib import Path
 from typing import Generator, NoReturn
 
+from graphite_shim.cache_only import CacheOnlyRunner
 from graphite_shim.commands import get_all_commands
 from graphite_shim.config import ConfigManager, Config, UseGraphiteConfig
 from graphite_shim.exception import UserError
@@ -51,6 +52,10 @@ def main() -> None:
 
     match config:
         case UseGraphiteConfig():
+            if os.environ.get("CACHE_ONLY", "").lower() == "true":
+                run_cache_only(git=git)
+                return
+
             graphite = shutil.which("gt")
             if graphite is None:
                 raise UserError("`gt` is not installed!")
@@ -97,6 +102,35 @@ def run_shim(*, git: GitClient, config: Config) -> None:
 
     args.cmd.run(args)
     store.save()
+
+
+def run_cache_only(*, git: GitClient) -> None:
+    """
+    Run a subset of graphite commands using only the Graphite cache.
+
+    Some graphite commands are slow because they always run remote requests.
+    But in cases where performance matters, we want to only use local cached
+    data.
+    """
+    runner = CacheOnlyRunner(
+        git_dir=git.git_dir,
+        curr_branch=git.get_curr_branch(),
+    )
+
+    parser = argparse.ArgumentParser(prog="gt", description=__doc__)
+    subparsers = parser.add_subparsers(title="commands", required=True, metavar="command")
+    subparsers.add_parser("parent").set_defaults(func=runner.get_parent)
+    subparsers.add_parser("trunk").set_defaults(func=runner.get_trunk)
+
+    # Show nicer error message on invalid command
+    if len(sys.argv) > 1:
+        cmd = sys.argv[1]
+        subparsers.add_parser(cmd).set_defaults(func=None, cmd=cmd)
+
+    args = parser.parse_args()
+    if args.func is None:
+        parser.error(f"Graphite command not supported with CACHE_ONLY: {args.cmd}")
+    args.func()
 
 
 if __name__ == "__main__":
