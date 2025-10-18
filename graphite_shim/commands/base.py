@@ -3,11 +3,19 @@ import argparse
 
 from graphite_shim.config import Config
 from graphite_shim.git import GitClient
+from graphite_shim.store import Store
 
 class Command(abc.ABC):
-    def __init__(self, *, git: GitClient, config: Config) -> None:
+    def __init__(
+        self,
+        *,
+        git: GitClient,
+        config: Config,
+        store: Store,
+    ) -> None:
         self._git = git
         self._config = config
+        self._store = store
 
     def __init_subclass__(cls) -> None:
         if not cls.__name__.startswith("Command"):

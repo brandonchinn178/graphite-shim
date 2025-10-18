@@ -11,7 +11,7 @@ from typing import Any, ClassVar, Self
 from graphite_shim.git import GitClient
 from graphite_shim.utils.term import input
 
-CONFIG_FILE = ".graphite_shim.conf"
+CONFIG_FILE = ".graphite_shim/config.json"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -24,6 +24,8 @@ class Config(abc.ABC):
 
     @classmethod
     def init(cls, *, git: GitClient) -> Self:
+        (git.git_dir / CONFIG_FILE).parent.mkdir(parents=True, exist_ok=True)
+
         inferred_config = InferredConfig.load(git=git)
         use_graphite = ask_yesno("Use `gt`?", default=inferred_config.use_graphite)
         if use_graphite:

@@ -15,6 +15,7 @@ from graphite_shim.commands import get_all_commands
 from graphite_shim.config import Config, GraphiteConfig, NonGraphiteConfig
 from graphite_shim.exception import UserError
 from graphite_shim.git import GitClient
+from graphite_shim.store import Store
 from graphite_shim.utils.term import print, printerr
 
 
@@ -41,7 +42,10 @@ def main() -> None:
         print("@(blue)graphite_shim has not been configured on this repo yet.")
         config = Config.init(git=git)
         config.dump(git_dir=git.git_dir)
-        print("\n@(green)graphite_shim configured!\n")
+        Store.init(config=config).dump(git_dir=git.git_dir)
+        print("")
+        print("@(green)graphite_shim configured!")
+        print("~" * 80)
 
     match config:
         case GraphiteConfig():
@@ -54,10 +58,12 @@ def main() -> None:
 
 # TODO: support aliases
 def run_shim(*, git: GitClient, config: Config) -> None:
+    store = Store.load(git_dir=git.git_dir)
+
     parser = argparse.ArgumentParser(prog="gt", description=__doc__)
     subparsers = parser.add_subparsers(title="commands", required=True, metavar="command")
     for name, cmd_cls in get_all_commands().items():
-        cmd = cmd_cls(git=git, config=config)
+        cmd = cmd_cls(git=git, config=config, store=store)
         cmd_parser = subparsers.add_parser(
             name,
             help=cmd.__doc__,
@@ -68,6 +74,8 @@ def run_shim(*, git: GitClient, config: Config) -> None:
 
     args = parser.parse_args()
     args.cmd.run(args)
+
+    store.dump(git_dir=git.git_dir)
 
 
 if __name__ == "__main__":
