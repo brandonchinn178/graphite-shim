@@ -19,7 +19,7 @@ class Config(abc.ABC):
     __REGISTRY: ClassVar[dict[str, type[Config]]] = {}
     type: ClassVar[str]
 
-    _git_dir: Path
+    git_dir: Path
 
     def __init_subclass__(cls) -> None:
         cls.__REGISTRY[cls.type] = cls
@@ -60,7 +60,7 @@ class Config(abc.ABC):
     def save(self) -> None:
         data = self.serialize()
         data["type"] = self.type
-        (self._git_dir / CONFIG_FILE).write_text(json.dumps(data))
+        (self.git_dir / CONFIG_FILE).write_text(json.dumps(data))
 
     @abc.abstractmethod
     def serialize(self) -> dict[str, Any]:
@@ -74,13 +74,13 @@ class GraphiteConfig(Config):
     @classmethod
     def _init(cls, inferred_config: InferredConfig) -> Self:
         return cls(
-            _git_dir=inferred_config.git_dir,
+            git_dir=inferred_config.git_dir,
         )
 
     @classmethod
     def deserialize(cls, data: dict[str, Any]) -> Self:
         return cls(
-            _git_dir=data["git_dir"],
+            git_dir=data["git_dir"],
         )
 
     def serialize(self) -> dict[str, Any]:
@@ -97,14 +97,14 @@ class NonGraphiteConfig(Config):
     def _init(cls, inferred_config: InferredConfig) -> Self:
         trunk = ask("Trunk branch", default=inferred_config.trunk)
         return cls(
-            _git_dir=inferred_config.git_dir,
+            git_dir=inferred_config.git_dir,
             trunk=trunk,
         )
 
     @classmethod
     def deserialize(cls, data: dict[str, Any]) -> Self:
         return cls(
-            _git_dir=data["git_dir"],
+            git_dir=data["git_dir"],
             trunk=data["trunk"],
         )
 

@@ -1,6 +1,6 @@
 import dataclasses
 import json
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import Self
 
@@ -12,7 +12,7 @@ STORE_FILE = ".graphite_shim/store.json"
 class Store:
     """The database for graphite_shim."""
 
-    _config: Config
+    config: Config
 
     # Tracked branches to their parent
     branches: dict[str, str]
@@ -20,7 +20,7 @@ class Store:
     @classmethod
     def init(cls, *, config: Config) -> Self:
         return cls(
-            _config=config,
+            config=config,
             branches={},
         )
 
@@ -28,7 +28,7 @@ class Store:
     def load(cls, *, config: Config) -> Self:
         data = json.loads((config.git_dir / STORE_FILE).read_text())
         return cls(
-            _config=config,
+            config=config,
             branches=data["branches"],
         )
 
@@ -36,15 +36,25 @@ class Store:
         data = {
             "branches": self.branches,
         }
-        (self._config.git_dir / STORE_FILE).write_text(json.dumps(data))
+        (self.config.git_dir / STORE_FILE).write_text(json.dumps(data))
 
-    def get_descendants(self, branch: str) -> Sequence[str]:
-        """Get downstream branches, where [0] is trunk and [-1] is branch's parent."""
-        def get_parents() -> Generator[str]:
+    def get_ancestors(self, branch: str) -> Sequence[str]:
+        """Get upstream branches, where [0] is trunk and [-1] is branch's parent."""
+        def get_parents() -> Iterable[str]:
             curr = branch
-            while curr != self._config.trunk:
+            while curr != self.config.trunk:
                 parent = self.branches[curr]
                 yield parent
                 curr = parent
 
-        return list(reversed(get_parents()))
+        return list(reversed(list(get_parents())))
+
+    def get_all_descendents(self, branch: str) -> Sequence[str]:
+        """Get all descendents, topologically sorted, but otherwise arbitrarily ordered."""
+        def descendents(branch: str) -> Iterable[str]:
+            children = [child for child, parent in self.branches.items() if parent == branch]
+            for child in children:
+                yield child
+                yield from descendents(child)
+
+        return list(descendents(branch))

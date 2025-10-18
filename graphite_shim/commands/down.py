@@ -12,8 +12,8 @@ class CommandDown(Command):
         steps: int = args.steps
 
         curr = self._git.get_curr_branch()
-        descendants = self._store.get_descendants(curr)
-        index = max(len(descendants) - steps, 0)
-        dest = descendants[index]
+        branches = self._store.get_ancestors(curr)
+        index = max(len(branches) - steps, 0)
+        dest = branches[index]
 
         self._git.run(["switch", dest])
