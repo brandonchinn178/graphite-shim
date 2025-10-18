@@ -28,7 +28,7 @@ uv run ruff format
 ### Typecheck
 
 ```shell
-uv run mypy
+uv run mypy .
 ```
 
 ### Test

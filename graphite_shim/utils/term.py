@@ -2,9 +2,10 @@ import functools
 import io
 import re
 import sys
+from typing import Any
 
 
-def _print(msg: str, *, end: str = "\n", file: io.StringIO | None = None) -> None:
+def _print(msg: str, *, end: str = "\n", file: io.StringIO | Any) -> None:
     """Convenience function for printing colored output."""
     if file.isatty():
         msg = colorify(msg)
@@ -33,7 +34,7 @@ def colorify(msg: str, *, reset: bool = True) -> str:
     if reset:
         msg += "@(reset)"
 
-    def replace(match: re.Match) -> str:
+    def replace(match: re.Match[str]) -> str:
         return to_escape_code(CODES[match.group(1)])
 
     return re.sub(r"@\((\w+)\)", replace, msg)

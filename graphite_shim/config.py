@@ -4,7 +4,7 @@ import dataclasses
 import json
 import shutil
 import typing
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, Self
 
@@ -48,7 +48,7 @@ class ConfigManager:
                 raise ValueError(f"Unknown config type: {ty}")
 
     @staticmethod
-    def save(config: UseGraphiteConfig | Config) -> None:
+    def save(config: UseGraphiteConfig | Config, *, git_dir: Path) -> None:
         match config:
             case UseGraphiteConfig():
                 data = {"type": "graphite"}
@@ -56,7 +56,7 @@ class ConfigManager:
                 data = {"type": "non-graphite", **config.serialize()}
             case _:
                 typing.assert_never(config)
-        (config.git_dir / CONFIG_FILE).write_text(json.dumps(data))
+        (git_dir / CONFIG_FILE).write_text(json.dumps(data))
 
 
 class UseGraphiteConfig:
@@ -67,7 +67,7 @@ class UseGraphiteConfig:
 class Config:
     git_dir: Path
 
-    aliases: Mapping[str, str] = dataclasses.field(default_factory=dict)
+    aliases: Mapping[str, Sequence[str]] = dataclasses.field(default_factory=dict)
     trunk: str
 
     @classmethod

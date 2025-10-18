@@ -43,7 +43,7 @@ def main() -> None:
     if config is None:
         print("@(blue)graphite_shim has not been configured on this repo yet.")
         config = ConfigManager.init(git=git)
-        ConfigManager.save(config)
+        ConfigManager.save(config, git_dir=git.git_dir)
         if isinstance(config, Config):
             Store.init(config=config).save()
         print("")
@@ -82,16 +82,16 @@ def run_shim(*, git: GitClient, config: Config) -> None:
         cmd.add_args(cmd_parser)
 
     # add aliases
-    for alias, args in config.aliases.items():
-        description = f"Alias for `{' '.join(args)}`"
+    for alias, alias_args in config.aliases.items():
+        description = f"Alias for `{' '.join(alias_args)}`"
         alias_parser = subparsers.add_parser(
             alias,
             help=description,
             description=description,
         )
-        alias_parser.set_defaults(alias_args=args)
+        alias_parser.set_defaults(alias_args=alias_args)
 
-    def parse_args(args) -> argparse.Namespace:
+    def parse_args(args: list[str]) -> argparse.Namespace:
         ns = parser.parse_args(args)
         if hasattr(ns, "alias_args"):
             return parse_args(ns.alias_args)

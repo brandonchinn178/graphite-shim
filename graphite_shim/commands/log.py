@@ -11,7 +11,7 @@ class CommandLog(Command):
         parser.add_argument("--stack", action="store_true")
 
     def run(self, args: argparse.Namespace) -> None:
-        command: str = args.command
+        command: str | None = args.command
         only_stack: bool = args.stack
 
         curr = self._git.get_curr_branch()

@@ -23,7 +23,8 @@ class CacheOnlyRunner:
     @functools.cached_property
     def _cache_data(self) -> Mapping[str, Any]:
         try:
-            return json.loads((self._git_dir / ".graphite_cache_persist").read_text())
+            data: dict[str, Any] = json.loads((self._git_dir / ".graphite_cache_persist").read_text())
+            return data
         except FileNotFoundError:
             raise UserError("Could not find graphite cache") from None
 
@@ -40,4 +41,5 @@ class CacheOnlyRunner:
         raise Exception("Could not find trunk")
 
     def get_parent(self) -> str:
-        return self._branch_map[self._curr_branch]["parentBranchName"]
+        parent: str = self._branch_map[self._curr_branch]["parentBranchName"]
+        return parent

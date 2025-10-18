@@ -7,6 +7,8 @@ from graphite_shim.store import Store
 
 
 class Command(abc.ABC):
+    __tag__: str
+
     def __init__(
         self,
         *,
