@@ -33,6 +33,6 @@ class CommandSync(Command):
             print(f"@(green){trunk}@(reset) is up to date.")
         elif self._git.is_ff(from_=old_sha, to=new_sha):
             self._git.run(["update-ref", trunk, new_sha, old_sha])
-            print(f"@(green){trunk}@(reset) fast-forwarded to {sha}")
+            print(f"@(green){trunk}@(reset) fast-forwarded to {new_sha}")
         else:
             print(f"@(yellow)WARNING: {trunk} not updated, not a fast-forward")
