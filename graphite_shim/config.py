@@ -50,7 +50,7 @@ class ConfigManager:
                 raise ValueError(f"Unknown config type: {ty}")
 
     @staticmethod
-    def save(self, config: UseGraphiteConfig | Config) -> None:
+    def save(config: UseGraphiteConfig | Config) -> None:
         match config:
             case UseGraphiteConfig():
                 data = {"type": "graphite"}
@@ -58,7 +58,7 @@ class ConfigManager:
                 data = {"type": "non-graphite", **config.serialize()}
             case _:
                 typing.assert_never(config)
-        (self.git_dir / CONFIG_FILE).write_text(json.dumps(data))
+        (config.git_dir / CONFIG_FILE).write_text(json.dumps(data))
 
 
 class UseGraphiteConfig:
@@ -75,10 +75,10 @@ class Config:
     @classmethod
     def init(cls, inferred_config: InferredConfig) -> Self:
         trunk = ask("Trunk branch", default=inferred_config.trunk)
-        return cls(
-            git_dir=inferred_config.git_dir,
-            trunk=trunk,
-        )
+        data = {
+            "trunk": trunk,
+        }
+        return cls.load(data, git_dir=inferred_config.git_dir)
 
     @classmethod
     def load(
