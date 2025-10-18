@@ -1,13 +1,13 @@
 import dataclasses
 import json
 from collections.abc import Iterable, Sequence
-from pathlib import Path
 from typing import Self
 
 from graphite_shim.config import Config
 from graphite_shim.exception import UserError
 
 STORE_FILE = ".graphite_shim/store.json"
+
 
 @dataclasses.dataclass
 class Store:
@@ -55,6 +55,7 @@ class Store:
 
         Returns an empty list if the branch is trunk.
         """
+
         def get_parents() -> Iterable[str]:
             curr = branch
             while curr != self.config.trunk:
@@ -66,6 +67,7 @@ class Store:
 
     def get_all_descendants(self, branch: str) -> Sequence[str]:
         """Get all descendants, in topological order."""
+
         def descendants(branch: str) -> Iterable[str]:
             children = [child for child, parent in self.branches.items() if parent == branch]
             for child in children:

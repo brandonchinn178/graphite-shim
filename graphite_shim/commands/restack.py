@@ -2,6 +2,7 @@ import argparse
 
 from graphite_shim.commands.base import Command
 
+
 class CommandRestack(Command):
     """Restack a stack of branches."""
 

@@ -9,12 +9,12 @@ import shutil
 import sys
 import traceback
 import typing
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator, NoReturn
 
 from graphite_shim.cache_only import CacheOnlyRunner
 from graphite_shim.commands import get_all_commands
-from graphite_shim.config import ConfigManager, Config, UseGraphiteConfig
+from graphite_shim.config import Config, ConfigManager, UseGraphiteConfig
 from graphite_shim.exception import UserError
 from graphite_shim.git import GitClient
 from graphite_shim.store import Store
@@ -65,6 +65,7 @@ def main() -> None:
         case _:
             typing.assert_never(config)
 
+
 def run_shim(*, git: GitClient, config: Config) -> None:
     store = Store.load(config=config)
 
@@ -82,7 +83,7 @@ def run_shim(*, git: GitClient, config: Config) -> None:
 
     # add aliases
     for alias, args in config.aliases.items():
-        description = f"Alias for `{" ".join(args)}`"
+        description = f"Alias for `{' '.join(args)}`"
         alias_parser = subparsers.add_parser(
             alias,
             help=description,

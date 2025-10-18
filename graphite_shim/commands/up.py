@@ -2,6 +2,7 @@ import argparse
 
 from graphite_shim.commands.base import Command
 
+
 class CommandUp(Command):
     """Checkout a branch up the stack (towards descendants)."""
 
@@ -10,4 +11,4 @@ class CommandUp(Command):
 
     def run(self, args: argparse.Namespace) -> None:
         steps: int = args.steps
-        print("TODO: Up")
+        print(f"TODO: up {steps}")

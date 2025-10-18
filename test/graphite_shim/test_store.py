@@ -1,5 +1,6 @@
 from graphite_shim.store import Store
 
+
 class TestGetAllDescendants:
     def test_multiple_descendants(self, store: Store) -> None:
         store.branches = {

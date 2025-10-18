@@ -3,6 +3,7 @@ import argparse
 from graphite_shim.commands.base import Command
 from graphite_shim.utils.term import print
 
+
 class CommandSync(Command):
     """Syncs with remote and syncs branches."""
 
@@ -17,12 +18,12 @@ class CommandSync(Command):
         self._update_trunk()
 
         print("\n@(blue)Cleaning up merged branches...")
-        # TODO
+        print("TODO")
 
         if restack:
             print("\n@(blue)Restacking branches...")
             for branch in self._store.branches:
-                pass # TODO
+                print(f"TODO: restack {branch}")
 
     def _update_trunk(self) -> None:
         trunk = self._config.trunk

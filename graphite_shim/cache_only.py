@@ -6,7 +6,6 @@ But in cases where performance matters, we want to only use local cached
 data.
 """
 
-import dataclasses
 import functools
 import json
 from collections.abc import Mapping

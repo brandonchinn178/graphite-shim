@@ -1,8 +1,8 @@
 import argparse
-import itertools
 
 from graphite_shim.commands.base import Command
 from graphite_shim.utils.term import print
+
 
 class CommandSubmit(Command):
     """Submit a stack to the remote."""

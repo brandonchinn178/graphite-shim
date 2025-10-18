@@ -11,6 +11,7 @@ DEFAULT_ALIASES = {
     "s": ["submit"],
 }
 
+
 def load_aliases() -> Mapping[str, Sequence[str]]:
     try:
         aliases_content = ALIASES_FILE.read_text()

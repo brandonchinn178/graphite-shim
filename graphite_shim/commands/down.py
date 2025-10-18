@@ -3,6 +3,7 @@ import argparse
 from graphite_shim.commands.base import Command
 from graphite_shim.utils.term import print
 
+
 class CommandDown(Command):
     """Checkout a branch down the stack (towards ancestors)."""
 

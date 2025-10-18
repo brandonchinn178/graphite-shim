@@ -2,6 +2,7 @@ import argparse
 
 from graphite_shim.commands.base import Command
 
+
 class CommandReorder(Command):
     """Reorder branches in a stack."""
 

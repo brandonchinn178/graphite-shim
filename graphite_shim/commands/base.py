@@ -5,6 +5,7 @@ from graphite_shim.config import Config
 from graphite_shim.git import GitClient
 from graphite_shim.store import Store
 
+
 class Command(abc.ABC):
     def __init__(
         self,
@@ -24,7 +25,7 @@ class Command(abc.ABC):
         cls.__tag__ = cls.__name__.removeprefix("Command").lower()
 
     def add_args(self, parser: argparse.ArgumentParser) -> None:
-        pass
+        return
 
     @abc.abstractmethod
     def run(self, args: argparse.Namespace) -> None:

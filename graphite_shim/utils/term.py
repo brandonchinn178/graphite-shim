@@ -3,6 +3,7 @@ import io
 import re
 import sys
 
+
 def _print(msg: str, *, end: str = "\n", file: io.StringIO | None = None) -> None:
     """Convenience function for printing colored output."""
     if file.isatty():
@@ -11,14 +12,17 @@ def _print(msg: str, *, end: str = "\n", file: io.StringIO | None = None) -> Non
     file.write(msg)
     file.write(end)
 
+
 print = functools.partial(_print, file=sys.stdout)
 printerr = functools.partial(_print, file=sys.stderr)
 
 builtin_input = input
 
+
 def input(msg: str) -> str:
     """Convenience function for asking user input with color."""
     return builtin_input(colorify(msg))
+
 
 def colorify(msg: str, *, reset: bool = True) -> str:
     """
@@ -34,6 +38,7 @@ def colorify(msg: str, *, reset: bool = True) -> str:
 
     return re.sub(r"@\((\w+)\)", replace, msg)
 
+
 # ----- Low level API ----- #
 
 CODES = {
@@ -48,6 +53,7 @@ CODES = {
     "cyan": 36,
 }
 
+
 def to_escape_code(*codes: int) -> str:
     # https://stackoverflow.com/a/33206814/4966649
-    return f"\033[{";".join(str(x) for x in codes)}m"
+    return f"\033[{';'.join(str(x) for x in codes)}m"

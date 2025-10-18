@@ -2,6 +2,7 @@ import argparse
 
 from graphite_shim.commands.base import Command
 
+
 class CommandCreate(Command):
     """Create a branch."""
 
