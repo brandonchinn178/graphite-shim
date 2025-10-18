@@ -9,4 +9,5 @@ class CommandSync(Command):
         parser.add_argument("--no-restack")
 
     def run(self, args: argparse.Namespace) -> None:
+        self._git.run(["fetch"])
         print("TODO: sync")

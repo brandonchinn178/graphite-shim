@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, ClassVar, Self
 
 from graphite_shim.git import GitClient
+from graphite_shim.utils.term import input
 
 CONFIG_FILE = ".graphite_shim.conf"
 
@@ -118,7 +119,7 @@ class InferredConfig:
 
 
 def ask(prompt: str, *, default: str) -> str:
-    resp = input(f"{prompt} [{default}] ").strip()
+    resp = input(f"@(yellow){prompt} [{default}] ").strip()
     return resp if resp else default
 
 
