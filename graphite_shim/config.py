@@ -65,11 +65,11 @@ class UseGraphiteConfig:
     pass
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True, kw_only=True)
 class Config:
     git_dir: Path
 
-    aliases: Mapping[str, str]
+    aliases: Mapping[str, str] = dataclasses.field(default_factory=dict)
     trunk: str
 
     @classmethod

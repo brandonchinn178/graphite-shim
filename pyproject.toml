@@ -1,0 +1,13 @@
+[project]
+name = "graphite-shim"
+version = "0.0.0"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+addopts = [
+    "-v",
+    "-ra",
+    "--import-mode=importlib",
+    "--durations=10",
+]
+xfail_strict = true

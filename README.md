@@ -13,3 +13,9 @@ After cloning this repo somewhere, add the following to `bashrc`/`zshrc`:
 ```shell
 alias gt=/path/to/graphite-shim/entrypoint.sh
 ```
+
+## Test
+
+```shell
+test/pytest.sh
+```

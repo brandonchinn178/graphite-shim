@@ -16,7 +16,7 @@ class Store:
     config: Config
 
     # Tracked branches to their parent
-    branches: dict[str, str]
+    branches: dict[str, str] = dataclasses.field(default_factory=dict)
 
     @classmethod
     def init(cls, *, config: Config) -> Self:
