@@ -5,6 +5,7 @@ import dataclasses
 import json
 import shutil
 import subprocess
+import typing
 from pathlib import Path
 from typing import Any, ClassVar, Self
 
@@ -14,82 +15,57 @@ from graphite_shim.utils.term import input
 CONFIG_FILE = ".graphite_shim/config.json"
 
 
-@dataclasses.dataclass(frozen=True)
-class Config(abc.ABC):
-    __REGISTRY: ClassVar[dict[str, type[Config]]] = {}
-    type: ClassVar[str]
-
-    git_dir: Path
-
-    def __init_subclass__(cls) -> None:
-        cls.__REGISTRY[cls.type] = cls
-
-    @classmethod
-    def init(cls, *, git: GitClient) -> Self:
+class ConfigManager:
+    @staticmethod
+    def init(*, git: GitClient) -> UseGraphiteConfig | Config:
         (git.git_dir / CONFIG_FILE).parent.mkdir(parents=True, exist_ok=True)
 
         inferred_config = InferredConfig.load(git=git)
-        use_graphite = ask_yesno("Use `gt`?", default=inferred_config.use_graphite)
-        if use_graphite:
-            return GraphiteConfig._init(inferred_config)
+
+        if inferred_config.graphite_installed:
+            use_graphite = ask_yesno("Use `gt`?", default=inferred_config.use_graphite)
         else:
-            return NonGraphiteConfig._init(inferred_config)
+            use_graphite = False
 
-    @classmethod
-    @abc.abstractmethod
-    def _init(cls, inferred_config: InferredConfig) -> Self:
-        pass
+        if use_graphite:
+            return UseGraphiteConfig()
+        else:
+            return Config._init(inferred_config)
 
-    @classmethod
-    def load(cls, *, git_dir: Path) -> Self | None:
+    @staticmethod
+    def load(*, git_dir: Path) -> UseGraphiteConfig | Config | None:
         try:
             data = json.loads((git_dir / CONFIG_FILE).read_text())
-            data["git_dir"] = git_dir
-            return cls.deserialize(data)
         except FileNotFoundError:
             return None
 
-    @classmethod
-    def deserialize(cls, data: dict[str, Any]) -> Self:
-        config_cls = cls.__REGISTRY.get(data["type"])
-        if config_cls is None:
-            raise ValueError(f"Unknown config type: {data["type"]}")
+        match data.pop("type"):
+            case "graphite":
+                return UseGraphiteConfig()
+            case "non-graphite":
+                return Config.deserialize(data, git_dir=git_dir)
+            case ty:
+                raise ValueError(f"Unknown config type: {ty}")
 
-        return config_cls.deserialize(data)
-
-    def save(self) -> None:
-        data = self.serialize()
-        data["type"] = self.type
+    @staticmethod
+    def save(self, config: UseGraphiteConfig | Config) -> None:
+        match config:
+            case UseGraphiteConfig():
+                data = {"type": "graphite"}
+            case Config():
+                data = {"type": "non-graphite", **config.serialize()}
+            case _:
+                typing.assert_never(config)
         (self.git_dir / CONFIG_FILE).write_text(json.dumps(data))
 
-    @abc.abstractmethod
-    def serialize(self) -> dict[str, Any]:
-        pass
+
+class UseGraphiteConfig:
+    pass
 
 
 @dataclasses.dataclass(frozen=True)
-class GraphiteConfig(Config):
-    type: ClassVar[str] = "graphite"
-
-    @classmethod
-    def _init(cls, inferred_config: InferredConfig) -> Self:
-        return cls(
-            git_dir=inferred_config.git_dir,
-        )
-
-    @classmethod
-    def deserialize(cls, data: dict[str, Any]) -> Self:
-        return cls(
-            git_dir=data["git_dir"],
-        )
-
-    def serialize(self) -> dict[str, Any]:
-        return {}
-
-
-@dataclasses.dataclass(frozen=True)
-class NonGraphiteConfig(Config):
-    type: ClassVar[str] = "non-graphite"
+class Config:
+    git_dir: Path
 
     trunk: str
 
@@ -102,9 +78,14 @@ class NonGraphiteConfig(Config):
         )
 
     @classmethod
-    def deserialize(cls, data: dict[str, Any]) -> Self:
+    def deserialize(
+        cls,
+        data: dict[str, Any],
+        *,
+        git_dir: Path,
+    ) -> Self:
         return cls(
-            git_dir=data["git_dir"],
+            git_dir=git_dir,
             trunk=data["trunk"],
         )
 
@@ -120,6 +101,7 @@ class NonGraphiteConfig(Config):
 @dataclasses.dataclass(frozen=True)
 class InferredConfig:
     git_dir: Path
+    graphite_installed: bool
     use_graphite: bool
     trunk: str
 
@@ -131,7 +113,12 @@ class InferredConfig:
 
         trunk = git.query(["rev-parse", "--abbrev-ref", "origin/HEAD"]).removeprefix("origin/")
 
-        return cls(git_dir=git.git_dir, use_graphite=use_graphite, trunk=trunk)
+        return cls(
+            git_dir=git.git_dir,
+            graphite_installed=graphite_installed,
+            use_graphite=use_graphite,
+            trunk=trunk,
+        )
 
 
 def ask(prompt: str, *, default: str) -> str:

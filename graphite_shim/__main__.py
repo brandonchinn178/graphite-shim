@@ -8,11 +8,12 @@ import os
 import shutil
 import sys
 import traceback
+import typing
 from pathlib import Path
 from typing import Generator, NoReturn
 
 from graphite_shim.commands import get_all_commands
-from graphite_shim.config import Config, GraphiteConfig, NonGraphiteConfig
+from graphite_shim.config import ConfigManager, Config, UseGraphiteConfig
 from graphite_shim.exception import UserError
 from graphite_shim.git import GitClient
 from graphite_shim.store import Store
@@ -37,24 +38,27 @@ def handle_errors() -> Generator[None, None, None]:
 @handle_errors()
 def main() -> None:
     git = GitClient.load(Path.cwd())
-    config = Config.load(git_dir=git.git_dir)
+    config = ConfigManager.load(git_dir=git.git_dir)
     if config is None:
         print("@(blue)graphite_shim has not been configured on this repo yet.")
-        config = Config.init(git=git)
-        config.save()
-        Store.init(config=config).save()
+        config = ConfigManager.init(git=git)
+        ConfigManager.save(config)
+        if isinstance(config, Config):
+            Store.init(config=config).save()
         print("")
         print("@(green)graphite_shim configured!")
         print("~" * 80)
 
     match config:
-        case GraphiteConfig():
+        case UseGraphiteConfig():
             graphite = shutil.which("gt")
             if graphite is None:
                 raise UserError("`gt` is not installed!")
             os.execvp(graphite, sys.argv)
-        case NonGraphiteConfig():
+        case Config():
             run_shim(git=git, config=config)
+        case _:
+            typing.assert_never(config)
 
 # TODO: support aliases
 def run_shim(*, git: GitClient, config: Config) -> None:
