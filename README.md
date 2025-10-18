@@ -14,8 +14,25 @@ After cloning this repo somewhere, add the following to `bashrc`/`zshrc`:
 alias gt=/path/to/graphite-shim/entrypoint.sh
 ```
 
-## Test
+## Development
+
+For development, install `uv`.
+
+### Lint
 
 ```shell
-test/pytest.sh
+uv run ruff check
+uv run ruff format
+```
+
+### Typecheck
+
+```shell
+uv run mypy
+```
+
+### Test
+
+```shell
+uv run pytest
 ```
