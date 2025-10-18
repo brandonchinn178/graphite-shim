@@ -34,5 +34,5 @@ uv run mypy .
 ### Test
 
 ```shell
-uv run pytest
+PYTHONPATH=. uv run pytest
 ```
