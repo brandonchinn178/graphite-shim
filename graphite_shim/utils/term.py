@@ -5,7 +5,10 @@ import sys
 
 def _print(msg: str, *, end: str = "\n", file: io.StringIO | None = None) -> None:
     """Convenience function for printing colored output."""
-    file.write(colorify(msg))
+    if file.isatty():
+        msg = colorify(msg)
+
+    file.write(msg)
     file.write(end)
 
 print = functools.partial(_print, file=sys.stdout)
