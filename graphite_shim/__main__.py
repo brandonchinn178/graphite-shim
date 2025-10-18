@@ -60,7 +60,6 @@ def main() -> None:
         case _:
             typing.assert_never(config)
 
-# TODO: support aliases
 def run_shim(*, git: GitClient, config: Config) -> None:
     store = Store.load(config=config)
 
@@ -76,9 +75,27 @@ def run_shim(*, git: GitClient, config: Config) -> None:
         cmd_parser.set_defaults(cmd=cmd)
         cmd.add_args(cmd_parser)
 
-    args = parser.parse_args()
-    args.cmd.run(args)
+    # add aliases
+    for alias, args in config.aliases.items():
+        description = f"Alias for `{" ".join(args)}`"
+        alias_parser = subparsers.add_parser(
+            alias,
+            help=description,
+            description=description,
+        )
+        alias_parser.set_defaults(alias_args=args)
 
+    def parse_args(args) -> argparse.Namespace:
+        ns = parser.parse_args(args)
+        if hasattr(ns, "alias_args"):
+            return parse_args(ns.alias_args)
+        return ns
+
+    args = parse_args(sys.argv[1:])
+    if not hasattr(args, "cmd"):
+        parser.error("No command provided")
+
+    args.cmd.run(args)
     store.save()
 
 

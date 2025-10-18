@@ -6,9 +6,11 @@ import json
 import shutil
 import subprocess
 import typing
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, ClassVar, Self
+from typing import Any, Self
 
+from graphite_shim.aliases import load_aliases
 from graphite_shim.git import GitClient
 from graphite_shim.utils.term import input
 
@@ -30,7 +32,7 @@ class ConfigManager:
         if use_graphite:
             return UseGraphiteConfig()
         else:
-            return Config._init(inferred_config)
+            return Config.init(inferred_config)
 
     @staticmethod
     def load(*, git_dir: Path) -> UseGraphiteConfig | Config | None:
@@ -43,7 +45,7 @@ class ConfigManager:
             case "graphite":
                 return UseGraphiteConfig()
             case "non-graphite":
-                return Config.deserialize(data, git_dir=git_dir)
+                return Config.load(data, git_dir=git_dir)
             case ty:
                 raise ValueError(f"Unknown config type: {ty}")
 
@@ -67,10 +69,11 @@ class UseGraphiteConfig:
 class Config:
     git_dir: Path
 
+    aliases: Mapping[str, str]
     trunk: str
 
     @classmethod
-    def _init(cls, inferred_config: InferredConfig) -> Self:
+    def init(cls, inferred_config: InferredConfig) -> Self:
         trunk = ask("Trunk branch", default=inferred_config.trunk)
         return cls(
             git_dir=inferred_config.git_dir,
@@ -78,14 +81,16 @@ class Config:
         )
 
     @classmethod
-    def deserialize(
+    def load(
         cls,
         data: dict[str, Any],
         *,
         git_dir: Path,
     ) -> Self:
+        aliases = load_aliases()
         return cls(
             git_dir=git_dir,
+            aliases=aliases,
             trunk=data["trunk"],
         )
 
