@@ -64,12 +64,18 @@ class Store:
 
         return list(reversed(list(get_parents())))
 
-    def get_all_descendents(self, branch: str) -> Sequence[str]:
-        """Get all descendents, topologically sorted, but otherwise arbitrarily ordered."""
-        def descendents(branch: str) -> Iterable[str]:
+    def get_all_descendants(self, branch: str) -> Sequence[str]:
+        """Get all descendants, in topological order."""
+        def descendants(branch: str) -> Iterable[str]:
             children = [child for child, parent in self.branches.items() if parent == branch]
             for child in children:
                 yield child
-                yield from descendents(child)
+                yield from descendants(child)
 
-        return list(descendents(branch))
+        return list(descendants(branch))
+
+    def get_stack(self, branch: str, *, descendants: bool = True) -> Sequence[str]:
+        branches = [*self.get_ancestors(branch), branch]
+        if descendants:
+            branches = [*branches, *self.get_all_descendants(branch)]
+        return branches
