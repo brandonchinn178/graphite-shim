@@ -39,7 +39,11 @@ class Store:
         (self.config.git_dir / STORE_FILE).write_text(json.dumps(data))
 
     def get_ancestors(self, branch: str) -> Sequence[str]:
-        """Get upstream branches, where [0] is trunk and [-1] is branch's parent."""
+        """
+        Get upstream branches, where [0] is trunk and [-1] is branch's parent.
+
+        Returns an empty list if the branch is trunk.
+        """
         def get_parents() -> Iterable[str]:
             curr = branch
             while curr != self.config.trunk:
