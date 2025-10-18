@@ -9,4 +9,4 @@ class CommandSubmit(Command):
         parser.add_argument("--stack")
 
     def run(self, args: argparse.Namespace) -> None:
-        print("TODO: submit")
+        submit_stack: bool = args.stack

@@ -9,4 +9,5 @@ class CommandUp(Command):
         parser.add_argument("steps", metavar="n", default=1)
 
     def run(self, args: argparse.Namespace) -> None:
-        print("TODO: up")
+        steps: int = args.steps
+        print("TODO: Up")

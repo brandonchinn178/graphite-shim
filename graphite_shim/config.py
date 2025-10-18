@@ -19,6 +19,8 @@ class Config(abc.ABC):
     __REGISTRY: ClassVar[dict[str, type[Config]]] = {}
     type: ClassVar[str]
 
+    _git_dir: Path
+
     def __init_subclass__(cls) -> None:
         cls.__REGISTRY[cls.type] = cls
 
@@ -42,6 +44,7 @@ class Config(abc.ABC):
     def load(cls, *, git_dir: Path) -> Self | None:
         try:
             data = json.loads((git_dir / CONFIG_FILE).read_text())
+            data["git_dir"] = git_dir
             return cls.deserialize(data)
         except FileNotFoundError:
             return None
@@ -54,10 +57,10 @@ class Config(abc.ABC):
 
         return config_cls.deserialize(data)
 
-    def dump(self, *, git_dir: Path) -> None:
+    def save(self) -> None:
         data = self.serialize()
         data["type"] = self.type
-        (git_dir / CONFIG_FILE).write_text(json.dumps(data))
+        (self._git_dir / CONFIG_FILE).write_text(json.dumps(data))
 
     @abc.abstractmethod
     def serialize(self) -> dict[str, Any]:
@@ -70,11 +73,15 @@ class GraphiteConfig(Config):
 
     @classmethod
     def _init(cls, inferred_config: InferredConfig) -> Self:
-        return cls()
+        return cls(
+            _git_dir=inferred_config.git_dir,
+        )
 
     @classmethod
     def deserialize(cls, data: dict[str, Any]) -> Self:
-        return cls()
+        return cls(
+            _git_dir=data["git_dir"],
+        )
 
     def serialize(self) -> dict[str, Any]:
         return {}
@@ -89,11 +96,17 @@ class NonGraphiteConfig(Config):
     @classmethod
     def _init(cls, inferred_config: InferredConfig) -> Self:
         trunk = ask("Trunk branch", default=inferred_config.trunk)
-        return cls(trunk=trunk)
+        return cls(
+            _git_dir=inferred_config.git_dir,
+            trunk=trunk,
+        )
 
     @classmethod
     def deserialize(cls, data: dict[str, Any]) -> Self:
-        return cls(trunk=data["trunk"])
+        return cls(
+            _git_dir=data["git_dir"],
+            trunk=data["trunk"],
+        )
 
     def serialize(self) -> dict[str, Any]:
         return {
@@ -106,6 +119,7 @@ class NonGraphiteConfig(Config):
 
 @dataclasses.dataclass(frozen=True)
 class InferredConfig:
+    git_dir: Path
     use_graphite: bool
     trunk: str
 
@@ -117,7 +131,7 @@ class InferredConfig:
 
         trunk = git.query(["rev-parse", "--abbrev-ref", "origin/HEAD"]).removeprefix("origin/")
 
-        return cls(use_graphite=use_graphite, trunk=trunk)
+        return cls(git_dir=git.git_dir, use_graphite=use_graphite, trunk=trunk)
 
 
 def ask(prompt: str, *, default: str) -> str:

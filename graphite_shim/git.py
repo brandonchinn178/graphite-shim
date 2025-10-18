@@ -42,6 +42,10 @@ class GitClient:
 
     # ----- Helpers ----- #
 
+    def get_curr_branch(self) -> str:
+        """Get the current branch."""
+        return self.query(["branch", "--show-current"])
+
     def is_ff(self, *, from_: str, to: str) -> bool:
         """Is it a fast forward from the given commit to the other?"""
         proc = self.run(["merge-base", "--is-ancestor", from_, to], check=False)

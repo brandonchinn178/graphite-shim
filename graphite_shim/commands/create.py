@@ -11,6 +11,6 @@ class CommandCreate(Command):
     def run(self, args: argparse.Namespace) -> None:
         name: str = args.name
 
-        curr = self._git.query(["branch", "--show-current"])
+        curr = self._git.get_curr_branch()
         self._git.run(["switch", "-c", name])
         self._store.branches[name] = curr

@@ -41,8 +41,8 @@ def main() -> None:
     if config is None:
         print("@(blue)graphite_shim has not been configured on this repo yet.")
         config = Config.init(git=git)
-        config.dump(git_dir=git.git_dir)
-        Store.init(config=config).dump(git_dir=git.git_dir)
+        config.save()
+        Store.init(config=config).save()
         print("")
         print("@(green)graphite_shim configured!")
         print("~" * 80)
@@ -58,7 +58,7 @@ def main() -> None:
 
 # TODO: support aliases
 def run_shim(*, git: GitClient, config: Config) -> None:
-    store = Store.load(git_dir=git.git_dir)
+    store = Store.load(config=config)
 
     parser = argparse.ArgumentParser(prog="gt", description=__doc__)
     subparsers = parser.add_subparsers(title="commands", required=True, metavar="command")
@@ -75,7 +75,7 @@ def run_shim(*, git: GitClient, config: Config) -> None:
     args = parser.parse_args()
     args.cmd.run(args)
 
-    store.dump(git_dir=git.git_dir)
+    store.save()
 
 
 if __name__ == "__main__":
