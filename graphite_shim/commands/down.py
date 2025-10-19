@@ -14,12 +14,14 @@ class CommandDown(Command):
         steps: int = args.steps
 
         curr = self._git.get_curr_branch()
-        if curr == self._config.trunk:
+        ancestors = list(self._store.get_ancestors(curr))
+
+        if len(ancestors) == 0:
             print(f"Already on @(green){self._config.trunk}")
             return
+        elif steps > len(ancestors):
+            dest = ancestors[-1]
+        else:
+            dest = ancestors[steps - 1]
 
-        branches = self._store.get_ancestors(curr)
-        index = max(len(branches) - steps, 0)
-        dest = branches[index]
-
-        self._git.run(["switch", dest])
+        self._git.run(["switch", dest.name])

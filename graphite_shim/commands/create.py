@@ -14,4 +14,4 @@ class CommandCreate(Command):
 
         curr = self._git.get_curr_branch()
         self._git.run(["switch", "-c", name])
-        self._store.branches[name] = curr
+        self._store.set_parent(name, parent=curr)

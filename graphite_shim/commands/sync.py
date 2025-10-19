@@ -22,7 +22,7 @@ class CommandSync(Command):
 
         if restack:
             print("\n@(blue)Restacking branches...")
-            for branch in self._store.branches:
+            for branch in self._store.get_branches():
                 print(f"TODO: restack {branch}")
 
     def _update_trunk(self) -> None:

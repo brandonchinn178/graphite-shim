@@ -17,7 +17,7 @@ CONFIG_FILE = ".graphite_shim/config.json"
 
 class ConfigManager:
     @staticmethod
-    def init(*, git: GitClient) -> UseGraphiteConfig | Config:
+    def setup(*, git: GitClient) -> UseGraphiteConfig | Config:
         (git.git_dir / CONFIG_FILE).parent.mkdir(parents=True, exist_ok=True)
 
         inferred_config = InferredConfig.load(git=git)
@@ -30,7 +30,7 @@ class ConfigManager:
         if use_graphite:
             return UseGraphiteConfig()
         else:
-            return Config.init(inferred_config)
+            return Config.setup(inferred_config)
 
     @staticmethod
     def load(*, git_dir: Path) -> UseGraphiteConfig | Config | None:
@@ -71,7 +71,7 @@ class Config:
     trunk: str
 
     @classmethod
-    def init(cls, inferred_config: InferredConfig) -> Self:
+    def setup(cls, inferred_config: InferredConfig) -> Self:
         trunk = ask("Trunk branch", default=inferred_config.trunk)
         data = {
             "trunk": trunk,
@@ -98,7 +98,7 @@ class Config:
         }
 
 
-# ----- Initialization helpers ----- #
+# ----- Setup helpers ----- #
 
 
 @dataclasses.dataclass(frozen=True)

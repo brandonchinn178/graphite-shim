@@ -10,6 +10,7 @@ At Snowflake, I started using graphite and really liked the UX. However, it's Gi
 
 After cloning this repo somewhere, add the following to `bashrc`/`zshrc`:
 
+<!-- TODO: aliases dont work in git config -->
 ```shell
 alias gt=/path/to/graphite-shim/entrypoint.sh
 ```

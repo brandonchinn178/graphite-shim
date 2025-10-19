@@ -17,7 +17,7 @@ from graphite_shim.commands import get_all_commands
 from graphite_shim.config import Config, ConfigManager, UseGraphiteConfig
 from graphite_shim.exception import UserError
 from graphite_shim.git import GitClient
-from graphite_shim.store import Store
+from graphite_shim.store import StoreManager
 from graphite_shim.utils.term import print, printerr
 
 
@@ -38,14 +38,21 @@ def handle_errors() -> Generator[None, None, None]:
 
 @handle_errors()
 def main() -> None:
+    # TODO: initialize prompter; pass to all commands
+    no_interactive = "--no-interactive" in sys.argv
+
     git = GitClient.load(Path.cwd())
     config = ConfigManager.load(git_dir=git.git_dir)
     if config is None:
+        if no_interactive:
+            raise UserError("gt not configured")
+
         print("@(blue)graphite_shim has not been configured on this repo yet.")
-        config = ConfigManager.init(git=git)
+        config = ConfigManager.setup(git=git)
         ConfigManager.save(config, git_dir=git.git_dir)
         if isinstance(config, Config):
-            Store.init(config=config).save()
+            store = StoreManager.new(config=config)
+            StoreManager.save(store, git_dir=git.git_dir)
         print("")
         print("@(green)graphite_shim configured!")
         print("~" * 80)
@@ -67,7 +74,7 @@ def main() -> None:
 
 
 def run_shim(*, git: GitClient, config: Config) -> None:
-    store = Store.load(config=config)
+    store = StoreManager.load(git_dir=git.git_dir)
 
     parser = argparse.ArgumentParser(prog="gt", description=__doc__)
     subparsers = parser.add_subparsers(title="commands", required=True, metavar="command")
@@ -102,7 +109,7 @@ def run_shim(*, git: GitClient, config: Config) -> None:
         parser.error("No command provided")
 
     args.cmd.run(args)
-    store.save()
+    StoreManager.save(store, git_dir=git.git_dir)
 
 
 def run_cache_only(*, git: GitClient) -> None:

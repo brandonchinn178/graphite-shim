@@ -1,5 +1,6 @@
 import dataclasses
 import subprocess
+import unittest.mock
 from pathlib import Path
 from typing import Any, Self
 
@@ -50,3 +51,13 @@ class GitClient:
         """Is it a fast forward from the given commit to the other?"""
         proc = self.run(["merge-base", "--is-ancestor", from_, to], check=False)
         return proc.returncode == 0
+
+
+@dataclasses.dataclass(frozen=True)
+class GitClientMocked(GitClient):
+    run_mock: unittest.mock.Mock = dataclasses.field(
+        default_factory=lambda: unittest.mock.Mock(side_effect=RuntimeError("git not mocked")),
+    )
+
+    def run(self, args: list[str | Path], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        return self.run_mock(args, **kwargs)  # type: ignore[no-any-return]
