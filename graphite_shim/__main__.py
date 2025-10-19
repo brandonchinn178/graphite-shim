@@ -85,8 +85,8 @@ def run_shim(*, git: GitClient, config: Config) -> None:
             help=cmd.__doc__,
             description=cmd.__doc__,
         )
-        cmd_parser.set_defaults(cmd=cmd)
-        cmd.add_args(cmd_parser)
+        args_parser = cmd.add_args(cmd_parser)
+        cmd_parser.set_defaults(cmd=cmd, parse_args=args_parser)
 
     # add aliases
     for alias, alias_args in config.aliases.items():
@@ -108,7 +108,8 @@ def run_shim(*, git: GitClient, config: Config) -> None:
     if not hasattr(args, "cmd"):
         parser.error("No command provided")
 
-    args.cmd.run(args)
+    cmd_args = args.parse_args(args)
+    args.cmd.run(cmd_args)
     StoreManager.save(store, git_dir=git.git_dir)
 
 

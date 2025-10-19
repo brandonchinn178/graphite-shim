@@ -2,11 +2,12 @@ import importlib
 import inspect
 import pkgutil
 from collections.abc import Mapping
+from typing import Any
 
 from graphite_shim.commands.base import Command
 
 
-def get_all_commands() -> Mapping[str, type[Command]]:
+def get_all_commands() -> Mapping[str, type[Command[Any]]]:
     # Import + load all graphite_shim.commands.* modules
     # https://stackoverflow.com/a/3365846/4966649
     all_submodules = (

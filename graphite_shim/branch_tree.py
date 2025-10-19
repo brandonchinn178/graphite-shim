@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import contextlib
 import dataclasses
@@ -6,7 +8,6 @@ from collections import defaultdict
 from collections.abc import Iterator, Mapping, Sequence
 from typing import Any, Literal, Self
 
-from graphite_shim.exception import UserError
 
 class BranchTree:
     def __init__(

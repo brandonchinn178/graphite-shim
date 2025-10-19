@@ -1,12 +1,8 @@
-import dataclasses
 import json
-from collections.abc import Iterable, Sequence
 from pathlib import Path
-from typing import Self
 
 from graphite_shim.branch_tree import BranchTree
 from graphite_shim.config import Config
-from graphite_shim.exception import UserError
 
 STORE_FILE = ".graphite_shim/store.json"
 

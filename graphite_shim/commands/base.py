@@ -1,12 +1,13 @@
 import abc
 import argparse
+from collections.abc import Callable
 
 from graphite_shim.config import Config
 from graphite_shim.git import GitClient
 from graphite_shim.store import Store
 
 
-class Command(abc.ABC):
+class Command[Args](abc.ABC):
     __tag__: str
 
     def __init__(
@@ -26,9 +27,10 @@ class Command(abc.ABC):
 
         cls.__tag__ = cls.__name__.removeprefix("Command").lower()
 
-    def add_args(self, parser: argparse.ArgumentParser) -> None:
-        return
+    @abc.abstractmethod
+    def add_args(self, parser: argparse.ArgumentParser) -> Callable[[argparse.Namespace], Args]:
+        pass
 
     @abc.abstractmethod
-    def run(self, args: argparse.Namespace) -> None:
+    def run(self, args: Args) -> None:
         pass

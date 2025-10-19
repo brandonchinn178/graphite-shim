@@ -1,18 +1,27 @@
 import argparse
+import dataclasses
+from collections.abc import Callable
 
 from graphite_shim.commands.base import Command
 from graphite_shim.utils.term import print
 
 
-class CommandSync(Command):
+@dataclasses.dataclass(frozen=True)
+class SyncArgs:
+    restack: bool
+
+
+class CommandSync(Command[SyncArgs]):
     """Syncs with remote and syncs branches."""
 
-    def add_args(self, parser: argparse.ArgumentParser) -> None:
+    def add_args(self, parser: argparse.ArgumentParser) -> Callable[[argparse.Namespace], SyncArgs]:
         parser.add_argument("--no-restack", dest="restack", action="store_false")
 
-    def run(self, args: argparse.Namespace) -> None:
-        restack: bool = args.restack
+        return lambda args: SyncArgs(
+            restack=args.restack,
+        )
 
+    def run(self, args: SyncArgs) -> None:
         print("@(blue)Fetching from remote...")
         self._git.run(["fetch"])
         self._update_trunk()
@@ -20,7 +29,7 @@ class CommandSync(Command):
         print("\n@(blue)Cleaning up merged branches...")
         print("TODO")
 
-        if restack:
+        if args.restack:
             print("\n@(blue)Restacking branches...")
             for branch in self._store.get_branches():
                 print(f"TODO: restack {branch}")

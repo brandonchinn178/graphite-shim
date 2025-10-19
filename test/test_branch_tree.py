@@ -2,6 +2,7 @@ import pytest
 
 from graphite_shim.branch_tree import BranchTree
 
+
 class TestSetParent:
     def test_updates_get_parent(self) -> None:
         branches = BranchTree(
@@ -9,7 +10,7 @@ class TestSetParent:
             parent_map={
                 "A": "main",
                 "B": "main",
-            }
+            },
         )
         branches.set_parent("C", parent="A")
         assert branches.get_branch("C").parent == "A"

@@ -1,17 +1,26 @@
 import argparse
+import dataclasses
+from collections.abc import Callable
 
 from graphite_shim.commands.base import Command
 
 
-class CommandCreate(Command):
+@dataclasses.dataclass(frozen=True)
+class CreateArgs:
+    name: str
+
+
+class CommandCreate(Command[CreateArgs]):
     """Create a branch."""
 
-    def add_args(self, parser: argparse.ArgumentParser) -> None:
+    def add_args(self, parser: argparse.ArgumentParser) -> Callable[[argparse.Namespace], CreateArgs]:
         parser.add_argument("name")
 
-    def run(self, args: argparse.Namespace) -> None:
-        name: str = args.name
+        return lambda args: CreateArgs(
+            name=args.name,
+        )
 
+    def run(self, args: CreateArgs) -> None:
         curr = self._git.get_curr_branch()
-        self._git.run(["switch", "-c", name])
-        self._store.set_parent(name, parent=curr)
+        self._git.run(["switch", "-c", args.name])
+        self._store.set_parent(args.name, parent=curr)
