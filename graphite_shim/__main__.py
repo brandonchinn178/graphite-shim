@@ -18,7 +18,7 @@ from graphite_shim.exception import UserError
 from graphite_shim.find_graphite import find_graphite
 from graphite_shim.git import GitClient
 from graphite_shim.store import StoreManager
-from graphite_shim.utils.term import print, printerr
+from graphite_shim.utils.term import Prompter, print, printerr
 
 
 @contextlib.contextmanager
@@ -38,17 +38,21 @@ def handle_errors() -> Generator[None, None, None]:
 
 @handle_errors()
 def main() -> None:
-    # TODO: initialize prompter; pass to all commands
-    no_interactive = "--no-interactive" in sys.argv
+    try:
+        no_interactive_index = sys.argv.index("--no-interactive")
+        sys.argv.pop(no_interactive_index)
+        prompter = None
+    except ValueError:
+        prompter = Prompter()
 
     git = GitClient.load(Path.cwd())
     config = ConfigManager.load(git_dir=git.git_dir)
     if config is None:
-        if no_interactive:
+        if prompter is None:
             raise UserError("gt not configured")
 
         print("@(blue)graphite_shim has not been configured on this repo yet.")
-        config = ConfigManager.setup(git=git)
+        config = ConfigManager.setup(git=git, prompter=prompter)
         ConfigManager.save(config, git_dir=git.git_dir)
         if isinstance(config, Config):
             store = StoreManager.new(config=config)
@@ -68,18 +72,18 @@ def main() -> None:
                 raise UserError("`gt` is not installed!")
             os.execvp(graphite, sys.argv)
         case Config():
-            run_shim(git=git, config=config)
+            run_shim(prompter=prompter, git=git, config=config)
         case _:
             typing.assert_never(config)
 
 
-def run_shim(*, git: GitClient, config: Config) -> None:
+def run_shim(*, prompter: Prompter | None, git: GitClient, config: Config) -> None:
     store = StoreManager.load(git_dir=git.git_dir)
 
     parser = argparse.ArgumentParser(prog="gt", description=__doc__)
     subparsers = parser.add_subparsers(title="commands", required=True, metavar="command")
     for name, cmd_cls in get_all_commands().items():
-        cmd = cmd_cls(git=git, config=config, store=store)
+        cmd = cmd_cls(prompter=prompter, git=git, config=config, store=store)
         cmd_parser = subparsers.add_parser(
             name,
             help=cmd.__doc__,

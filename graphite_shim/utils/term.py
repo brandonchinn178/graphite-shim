@@ -20,12 +20,21 @@ def _print(msg: str, *, end: str = "\n", get_file: Callable[[], io.StringIO | An
 print = functools.partial(_print, get_file=lambda: sys.stdout)
 printerr = functools.partial(_print, get_file=lambda: sys.stderr)
 
-builtin_input = input
 
+class Prompter:
+    def input(self, prompt: str) -> str:
+        return input(colorify(prompt))
 
-def input(msg: str) -> str:
-    """Convenience function for asking user input with color."""
-    return builtin_input(colorify(msg))
+    def ask(self, prompt: str, *, default: str) -> str:
+        resp = self.input(f"@(yellow){prompt} [{default}] ").strip()
+        return resp if resp else default
+
+    def ask_yesno(self, prompt: str, *, default: bool) -> bool:
+        default_disp = "Y/n" if default else "y/N"
+        resp = self.ask(prompt, default=default_disp)
+        if resp == default_disp:
+            return default
+        return resp.lower() in ("y", "yes")
 
 
 def colorify(msg: str, *, reset: bool = True) -> str:

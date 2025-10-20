@@ -10,27 +10,27 @@ from typing import Any, Self
 from graphite_shim.aliases import load_aliases
 from graphite_shim.find_graphite import find_graphite
 from graphite_shim.git import GitClient
-from graphite_shim.utils.term import input
+from graphite_shim.utils.term import Prompter
 
 CONFIG_FILE = ".graphite_shim/config.json"
 
 
 class ConfigManager:
     @staticmethod
-    def setup(*, git: GitClient) -> UseGraphiteConfig | Config:
+    def setup(*, git: GitClient, prompter: Prompter) -> UseGraphiteConfig | Config:
         (git.git_dir / CONFIG_FILE).parent.mkdir(parents=True, exist_ok=True)
 
         inferred_config = InferredConfig.load(git=git)
 
         if inferred_config.graphite_installed:
-            use_graphite = ask_yesno("Use `gt`?", default=inferred_config.use_graphite)
+            use_graphite = prompter.ask_yesno("Use `gt`?", default=inferred_config.use_graphite)
         else:
             use_graphite = False
 
         if use_graphite:
             return UseGraphiteConfig()
         else:
-            return Config.setup(inferred_config)
+            return Config.setup(inferred_config, prompter=prompter)
 
     @staticmethod
     def load(*, git_dir: Path) -> UseGraphiteConfig | Config | None:
@@ -71,8 +71,8 @@ class Config:
     trunk: str
 
     @classmethod
-    def setup(cls, inferred_config: InferredConfig) -> Self:
-        trunk = ask("Trunk branch", default=inferred_config.trunk)
+    def setup(cls, inferred_config: InferredConfig, *, prompter: Prompter) -> Self:
+        trunk = prompter.ask("Trunk branch", default=inferred_config.trunk)
         data = {
             "trunk": trunk,
         }
@@ -122,16 +122,3 @@ class InferredConfig:
             use_graphite=use_graphite,
             trunk=trunk,
         )
-
-
-def ask(prompt: str, *, default: str) -> str:
-    resp = input(f"@(yellow){prompt} [{default}] ").strip()
-    return resp if resp else default
-
-
-def ask_yesno(prompt: str, *, default: bool) -> bool:
-    default_disp = "Y/n" if default else "y/N"
-    resp = ask(prompt, default=default_disp)
-    if resp == default_disp:
-        return default
-    return resp.lower() in ("y", "yes")
