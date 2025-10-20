@@ -3,6 +3,7 @@ import dataclasses
 from collections.abc import Callable
 
 from graphite_shim.commands.base import Command
+from graphite_shim.exception import UserError
 
 
 @dataclasses.dataclass(frozen=True)
@@ -22,4 +23,7 @@ class CommandTrack(Command[TrackArgs]):
 
     def run(self, args: TrackArgs) -> None:
         curr = self._git.get_curr_branch()
-        self._store.set_parent(curr, parent=args.parent)
+        if curr == self._config.trunk:
+            raise UserError(f"{curr} is the trunk branch")
+        else:
+            self._store.set_parent(curr, parent=args.parent)
