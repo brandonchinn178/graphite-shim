@@ -45,7 +45,14 @@ class CommandSync(Command[SyncArgs]):
         if old_sha == new_sha:
             print(f"@(green){trunk}@(reset) is up to date.")
         elif self._git.is_ff(from_=old_sha, to=new_sha):
-            self._git.run(["update-ref", f"refs/heads/{trunk}", new_sha, old_sha])
+            curr = self._git.get_curr_branch()
+            if curr == trunk:
+                if self._git.query(["git", "status", "--porcelain"]) != "":
+                    print(f"@(yellow)WARNING: {trunk} not updated, uncommitted changes found")
+                    return
+                self._git.run(["reset", "--hard", new_sha])
+            else:
+                self._git.run(["update-ref", f"refs/heads/{trunk}", new_sha, old_sha])
             print(f"@(green){trunk}@(reset) fast-forwarded to {new_sha}")
         else:
             print(f"@(yellow)WARNING: {trunk} not updated, not a fast-forward")
