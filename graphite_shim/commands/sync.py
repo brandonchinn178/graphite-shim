@@ -39,8 +39,8 @@ class CommandSync(Command[SyncArgs]):
 
     def _update_trunk(self) -> None:
         trunk = self._config.trunk
-        old_sha = self._git.query(["rev-parse", trunk])
-        new_sha = self._git.query(["rev-parse", f"origin/{trunk}"])
+        old_sha = self._git.query(["rev-parse", f"refs/heads/{trunk}"])
+        new_sha = self._git.query(["rev-parse", f"refs/remotes/origin/{trunk}"])
 
         if old_sha == new_sha:
             print(f"@(green){trunk}@(reset) is up to date.")
