@@ -24,11 +24,11 @@ class CommandSubmit(Command[SubmitArgs]):
     def run(self, args: SubmitArgs) -> None:
         # branches to submit, starting from trunk
         curr = self._git.get_curr_branch()
-        branches = self._store.get_stack(curr, descendants=args.submit_stack)
+        branches = list(self._store.get_stack(curr, descendants=args.submit_stack))
 
         print("@(blue)Found branches:")
         for branch in branches:
-            print(f"- @(cyan){branch}")
+            print(f"- @(cyan){branch.name}")
 
         print("\n@(blue)Pushing branches to remote...")
-        self._git.run(["push", "--atomic", "--force-with-lease", "origin", *branches])
+        self._git.run(["push", "--atomic", "--force-with-lease", "origin", *(branch.name for branch in branches)])

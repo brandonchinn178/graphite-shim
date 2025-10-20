@@ -35,9 +35,12 @@ class CommandLog(Command[LogArgs]):
                 print("TODO: gt log --stack")
             case "short":
                 if args.only_stack:
-                    branches = self._store.get_stack(curr)
+                    branches = [branch.name for branch in self._store.get_stack(curr)]
                 else:
-                    branches = [self._config.trunk, *self._store.get_all_descendants(self._config.trunk)]
+                    branches = [
+                        self._config.trunk,
+                        *(branch.name for branch in self._store.get_all_descendants(self._config.trunk)),
+                    ]
                 print(branches)
                 print("TODO: gt log short")
             case "long":

@@ -11,10 +11,9 @@ def _print(msg: str, *, end: str = "\n", get_file: Callable[[], io.StringIO | An
     file = get_file()
 
     # strip escape codes if not a TTY
-    if not file.isatty():
-        msg = re.sub(r"@\(\w+\)", "", msg)
+    msg = colorify(msg) if file.isatty() else re.sub(r"@\(\w+\)", "", msg)
 
-    file.write(colorify(msg))
+    file.write(msg)
     file.write(end)
 
 

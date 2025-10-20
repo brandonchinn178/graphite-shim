@@ -31,19 +31,19 @@ class BranchTree:
 
     @functools.cached_property
     def _branch_infos(self) -> Mapping[str, BranchInfo]:
-        deps_map = defaultdict(list)
+        children_map = defaultdict(list)
         for branch, parent in self._parent_map.items():
-            deps_map[parent].append(branch)
+            children_map[parent].append(branch)
         return {
             self._trunk: TrunkBranchInfo(
                 name=self._trunk,
-                deps=deps_map[self._trunk],
+                children=children_map[self._trunk],
             ),
         } | {
             branch: NonTrunkBranchInfo(
                 name=branch,
                 parent=parent,
-                deps=deps_map[branch],
+                children=children_map[branch],
             )
             for branch, parent in self._parent_map.items()
         }
@@ -86,22 +86,20 @@ class BranchTree:
             curr = self._branch_infos[curr.parent]
             yield curr
 
-    # def get_all_descendants(self, branch: str) -> Sequence[str]:
-    #     """Get all descendants, in topological order."""
+    def get_all_descendants(self, branch: str) -> Iterator[BranchInfo]:
+        """Get all descendants, in topological order."""
 
-    #     def descendants(branch: str) -> Iterable[str]:
-    #         children = [child for child, parent in self.branches.items() if parent == branch]
-    #         for child in children:
-    #             yield child
-    #             yield from descendants(child)
+        info = self._branch_infos[branch]
+        for child in info.children:
+            yield self._branch_infos[child]
+            yield from self.get_all_descendants(child)
 
-    #     return list(descendants(branch))
-
-    # def get_stack(self, branch: str, *, descendants: bool = True) -> Sequence[str]:
-    #     branches = [*self.get_ancestors(branch), branch]
-    #     if descendants:
-    #         branches = [*branches, *self.get_all_descendants(branch)]
-    #     return branches
+    def get_stack(self, branch: str, *, descendants: bool = True) -> Iterator[BranchInfo]:
+        """Get the stack for the given branch, starting at the trunk."""
+        yield from reversed(list(self.get_ancestors(branch)))
+        yield self._branch_infos[branch]
+        if descendants:
+            yield from self.get_all_descendants(branch)
 
 
 type BranchInfo = TrunkBranchInfo | NonTrunkBranchInfo
@@ -110,12 +108,13 @@ type BranchInfo = TrunkBranchInfo | NonTrunkBranchInfo
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class BranchInfoBase(abc.ABC):
     name: str
-    deps: list[str]
+    children: list[str]
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class TrunkBranchInfo(BranchInfoBase):
     is_trunk: Literal[True] = True
+    parent: None = None
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
