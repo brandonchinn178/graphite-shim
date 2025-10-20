@@ -1,14 +1,15 @@
+from collections.abc import Callable
+
 import pytest
 
 from graphite_shim.commands.down import CommandDown, DownArgs
-from graphite_shim.config import Config
 from graphite_shim.git import GitTestClient
 from graphite_shim.store import Store
 
 
 @pytest.fixture(name="cmd")
-def fixture_cmd(git: GitTestClient, config: Config, store: Store) -> CommandDown:
-    return CommandDown(git=git, config=config, store=store)
+def fixture_cmd(init_cmd: Callable[[type[CommandDown]], CommandDown]) -> CommandDown:
+    return init_cmd(CommandDown)
 
 
 def test_with_steps(cmd: CommandDown, git: GitTestClient, store: Store) -> None:
