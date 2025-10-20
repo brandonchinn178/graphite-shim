@@ -8,7 +8,7 @@ data.
 
 import functools
 import json
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -32,14 +32,21 @@ class CacheOnlyRunner:
     def _branch_map(self) -> Mapping[str, Mapping[str, Any]]:
         return dict(self._cache_data["branches"])
 
-    def get_trunk(self) -> str:
+    def get_commands(self) -> Mapping[str, Callable[[], None]]:
+        return {
+            "trunk": self.get_trunk,
+            "parent": self.get_parent,
+        }
+
+    def get_trunk(self) -> None:
         curr = self._curr_branch
         while info := self._branch_map.get(curr):
             if info["validationResult"] == "TRUNK":
-                return curr
+                print(curr)
+                return
             curr = info["parentBranchName"]
         raise Exception("Could not find trunk")
 
-    def get_parent(self) -> str:
+    def get_parent(self) -> None:
         parent: str = self._branch_map[self._curr_branch]["parentBranchName"]
-        return parent
+        print(parent)

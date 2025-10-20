@@ -132,17 +132,19 @@ def run_cache_only(*, git: GitClient) -> None:
 
     parser = argparse.ArgumentParser(prog="gt", description=__doc__)
     subparsers = parser.add_subparsers(title="commands", required=True, metavar="command")
-    subparsers.add_parser("parent").set_defaults(func=runner.get_parent)
-    subparsers.add_parser("trunk").set_defaults(func=runner.get_trunk)
+
+    cmds = runner.get_commands()
+    for cmd, func in cmds.items():
+        subparsers.add_parser(cmd).set_defaults(func=func)
 
     # Show nicer error message on invalid command
-    if len(sys.argv) > 1:
-        cmd = sys.argv[1]
-        subparsers.add_parser(cmd).set_defaults(func=None, cmd=cmd)
+    match sys.argv:
+        case [_, cmd, *_] if cmd not in cmds:
+            subparsers.add_parser(cmd).set_defaults(
+                func=lambda: parser.error(f"Graphite command not supported with CACHE_ONLY: {cmd}")
+            )
 
     args = parser.parse_args()
-    if args.func is None:
-        parser.error(f"Graphite command not supported with CACHE_ONLY: {args.cmd}")
     args.func()
 
 
