@@ -31,8 +31,10 @@ class CommandRestack(Command[RestackArgs]):
         # TODO: make this logic only run with --only, and restack the whole stack by default.
         # Not implementing this now because I don't want to mess up the git reflog history by
         # checking out all the branches
-        curr = self._git.get_curr_branch()
-        parent = self._store.get_parent(curr)
-        rebase = self._git.run(["rebase", parent], check=False)
+        curr = self._store.get_branch(self._git.get_curr_branch())
+        if curr.is_trunk:
+            return
+        parent = self._store.get_branch(curr.parent)
+        rebase = self._git.run(["rebase", parent.name], check=False)
         if rebase.returncode > 0:
             raise UserError("Rebase failed, resolve conflicts and run `gt continue`")
