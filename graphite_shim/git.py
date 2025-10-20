@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import dataclasses
 import subprocess
-from collections.abc import Generator, Sequence
+from collections.abc import Generator, Iterator, Sequence
 from pathlib import Path
 from types import EllipsisType
 from typing import Any, Self
@@ -55,6 +55,24 @@ class GitClient:
         """Is it a fast forward from the given commit to the other?"""
         proc = self.run(["merge-base", "--is-ancestor", from_, to], check=False)
         return proc.returncode == 0
+
+    def get_merged_branches(self) -> Iterator[str]:
+        def get_other_branches(*extra_args: str) -> Iterator[str]:
+            branches = self.query(["branch", "--format=%(if)%(HEAD)%(then)%(else)%(refname:short)%(end)", *extra_args])
+            return (b for b in branches.splitlines() if b != "")
+
+        # merged branches
+        yield from get_other_branches("--merged")
+
+        # squashed branches
+        for branch in get_other_branches("--no-merged"):
+            # https://github.com/not-an-aardvark/git-delete-squashed
+            merge_base = self.query(["merge-base", "HEAD", branch])
+            tree_sha = self.query(["rev-parse", f"{branch}^{{tree}}"])
+            test_commit = self.run(["commit-tree", tree_sha, "-p", merge_base, "-m", "_"])
+            test_cherry_pick = self.run(["cherry", "HEAD", test_commit.stdout])
+            if test_cherry_pick.stdout.startswith("-"):
+                yield branch
 
 
 # ----- Test helpers ----- #

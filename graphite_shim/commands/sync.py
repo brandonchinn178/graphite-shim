@@ -27,12 +27,15 @@ class CommandSync(Command[SyncArgs]):
         self._update_trunk()
 
         print("\n@(blue)Cleaning up merged branches...")
-        print("TODO")
+        for merged_branch in self._git.get_merged_branches():
+            print(f"- {merged_branch}")
+            self._git.run(["branch", "-D", merged_branch])
 
-        if args.restack:
-            print("\n@(blue)Restacking branches...")
-            for branch in self._store.get_branches():
-                print(f"TODO: restack {branch}")
+        # TODO: Implement after `gt restack` works on multiple branches
+        # if args.restack:
+        #     print("\n@(blue)Restacking branches...")
+        #     for branch in self._store.get_branches():
+        #         print(f"TODO: restack {branch}")
 
     def _update_trunk(self) -> None:
         trunk = self._config.trunk
