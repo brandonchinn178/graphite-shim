@@ -70,7 +70,7 @@ class GitClient:
             merge_base = self.query(["merge-base", "HEAD", branch])
             tree_sha = self.query(["rev-parse", f"{branch}^{{tree}}"])
             test_commit = self.run(["commit-tree", tree_sha, "-p", merge_base, "-m", "_"], capture_output=True)
-            test_cherry_pick = self.run(["cherry", "HEAD", test_commit.stdout], capture_output=True)
+            test_cherry_pick = self.run(["cherry", "HEAD", test_commit.stdout.strip()], capture_output=True)
             if test_cherry_pick.stdout.startswith("-"):
                 yield branch
 
