@@ -1,24 +1,19 @@
-from pathlib import Path
-
 import pytest
 
 from graphite_shim.config import Config
-from graphite_shim.git import GitClientMocked
+from graphite_shim.git import GitTestClient
 from graphite_shim.store import Store, StoreManager
 
 
-@pytest.fixture(name="git_mocked")
-def fixture_git_mocked() -> GitClientMocked:
-    return GitClientMocked(
-        root=Path("."),
-        git_dir=Path(".git"),
-    )
+@pytest.fixture(name="git")
+def fixture_git() -> GitTestClient:
+    return GitTestClient()
 
 
 @pytest.fixture(name="config")
-def fixture_config(git_mocked: GitClientMocked) -> Config:
+def fixture_config(git: GitTestClient) -> Config:
     return Config(
-        git_dir=git_mocked.git_dir,
+        git_dir=git.git_dir,
         trunk="main",
     )
 

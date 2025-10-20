@@ -16,6 +16,7 @@ class CommandDown(Command[DownArgs]):
 
     def add_args(self, parser: argparse.ArgumentParser) -> Callable[[argparse.Namespace], DownArgs]:
         parser.add_argument("steps", metavar="n", nargs="?", default=1)
+
         return lambda args: DownArgs(
             steps=args.steps,
         )

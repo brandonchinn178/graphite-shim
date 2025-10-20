@@ -2,20 +2,24 @@ import functools
 import io
 import re
 import sys
+from collections.abc import Callable
 from typing import Any
 
 
-def _print(msg: str, *, end: str = "\n", file: io.StringIO | Any) -> None:
+def _print(msg: str, *, end: str = "\n", get_file: Callable[[], io.StringIO | Any]) -> None:
     """Convenience function for printing colored output."""
-    if file.isatty():
-        msg = colorify(msg)
+    file = get_file()
 
-    file.write(msg)
+    # strip escape codes if not a TTY
+    if not file.isatty():
+        msg = re.sub(r"@\(\w+\)", "", msg)
+
+    file.write(colorify(msg))
     file.write(end)
 
 
-print = functools.partial(_print, file=sys.stdout)
-printerr = functools.partial(_print, file=sys.stderr)
+print = functools.partial(_print, get_file=lambda: sys.stdout)
+printerr = functools.partial(_print, get_file=lambda: sys.stderr)
 
 builtin_input = input
 
