@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import dataclasses
 import json
-import shutil
 import typing
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, Self
 
 from graphite_shim.aliases import load_aliases
+from graphite_shim.find_graphite import find_graphite
 from graphite_shim.git import GitClient
 from graphite_shim.utils.term import input
 
@@ -110,7 +110,7 @@ class InferredConfig:
 
     @classmethod
     def load(cls, *, git: GitClient) -> Self:
-        graphite_installed = shutil.which("gt") is not None
+        graphite_installed = find_graphite() is not None
         origin_url = git.query(["config", "remote.origin.url"])
         use_graphite = graphite_installed and "github.com" in origin_url
 

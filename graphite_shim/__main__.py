@@ -5,7 +5,6 @@ A minimal implementation of the Graphite CLI.
 import argparse
 import contextlib
 import os
-import shutil
 import sys
 import traceback
 import typing
@@ -16,6 +15,7 @@ from graphite_shim.cache_only import CacheOnlyRunner
 from graphite_shim.commands import get_all_commands
 from graphite_shim.config import Config, ConfigManager, UseGraphiteConfig
 from graphite_shim.exception import UserError
+from graphite_shim.find_graphite import find_graphite
 from graphite_shim.git import GitClient
 from graphite_shim.store import StoreManager
 from graphite_shim.utils.term import print, printerr
@@ -63,7 +63,7 @@ def main() -> None:
                 run_cache_only(git=git)
                 return
 
-            graphite = shutil.which("gt")
+            graphite = find_graphite()
             if graphite is None:
                 raise UserError("`gt` is not installed!")
             os.execvp(graphite, sys.argv)
