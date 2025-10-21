@@ -67,11 +67,19 @@ class BranchTree:
 
     def get_branch(self, branch: str) -> BranchInfo:
         """Get the parent of the given branch."""
-        return self._branch_infos[branch]
+        try:
+            return self._branch_infos[branch]
+        except KeyError:
+            raise ValueError(f"Branch does not exist: {branch}") from None
 
     def get_branches(self) -> Sequence[BranchInfo]:
         """Get the parent of the given branch."""
         return list(self._branch_infos.values())
+
+    def rename_branch(self, *, from_: str, to: str) -> None:
+        """Rename the given branch."""
+        info = self.get_branch(from_)
+        self._parent_map = {to: info} | {k: v for k, v in self._parent_map if k != from_}
 
     def set_parent(self, branch: str, *, parent: str) -> None:
         """Set the parent of the given branch."""
