@@ -24,7 +24,9 @@ class CommandSubmit(Command[SubmitArgs]):
     def run(self, args: SubmitArgs) -> None:
         # branches to submit, starting from trunk
         curr = self._git.get_curr_branch()
-        branches = list(self._store.get_stack(curr, descendants=args.submit_stack))
+        branches = self._store.get_stack(curr, descendants=args.submit_stack)
+        if curr != self._config.trunk:
+            branches = [branch for branch in branches if branch.name != self._config.trunk]
 
         print("@(blue)Found branches:")
         for branch in branches:
