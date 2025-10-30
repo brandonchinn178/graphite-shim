@@ -47,7 +47,7 @@ class CommandSync(Command[SyncArgs]):
         elif self._git.is_ff(from_=old_sha, to=new_sha):
             curr = self._git.get_curr_branch()
             if curr == trunk:
-                if self._git.query(["git", "status", "--porcelain"]) != "":
+                if self._git.query(["status", "--porcelain"]) != "":
                     print(f"@(yellow)WARNING: {trunk} not updated, uncommitted changes found")
                     return
                 self._git.run(["reset", "--hard", new_sha])
