@@ -56,6 +56,9 @@ class GitClient:
         proc = self.run(["merge-base", "--is-ancestor", from_, to], check=False)
         return proc.returncode == 0
 
+    def does_branch_exist(self, name: str) -> bool:
+        return self.query(["branch", "--list", name]) != ""
+
     def get_merged_branches(self) -> Iterator[str]:
         def get_other_branches(*extra_args: str) -> Iterator[str]:
             branches = self.query(["branch", "--format=%(if)%(HEAD)%(then)%(else)%(refname:short)%(end)", *extra_args])
