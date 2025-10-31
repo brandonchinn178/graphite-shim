@@ -22,14 +22,20 @@ class CommandSync(Command[SyncArgs]):
         )
 
     def run(self, args: SyncArgs) -> None:
+        curr = self._git.get_curr_branch()
+        trunk = self._config.trunk
+
         print("@(blue)Fetching from remote...")
         self._git.run(["fetch"])
-        self._update_trunk()
+        self._update_trunk(curr=curr, trunk=trunk)
 
         print("\n@(blue)Cleaning up merged branches...")
-        for merged_branch in self._git.get_merged_branches(self._config.trunk):
+        merged_branches = list(self._git.get_merged_branches(trunk))
+        for merged_branch in merged_branches:
             print(f"- {merged_branch}")
-            self._git.run(["branch", "-D", merged_branch])
+        if curr in merged_branches:
+            self._git.run(["switch", trunk])
+        self._git.run(["branch", "-D", *merged_branches])
 
         # TODO: Implement after `gt restack` works on multiple branches
         # if args.restack:
@@ -37,15 +43,13 @@ class CommandSync(Command[SyncArgs]):
         #     for branch in self._store.get_branches():
         #         print(f"TODO: restack {branch}")
 
-    def _update_trunk(self) -> None:
-        trunk = self._config.trunk
+    def _update_trunk(self, *, curr: str, trunk: str) -> None:
         old_sha = self._git.query(["rev-parse", f"refs/heads/{trunk}"])
         new_sha = self._git.query(["rev-parse", f"refs/remotes/origin/{trunk}"])
 
         if old_sha == new_sha:
             print(f"@(green){trunk}@(reset) is up to date.")
         elif self._git.is_ff(from_=old_sha, to=new_sha):
-            curr = self._git.get_curr_branch()
             if curr == trunk:
                 if self._git.query(["status", "--porcelain"]) != "":
                     print(f"@(yellow)WARNING: {trunk} not updated, uncommitted changes found")
