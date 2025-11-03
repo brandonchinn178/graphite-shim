@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import functools
 import json
 import typing
 from collections.abc import Mapping, Sequence
@@ -67,8 +68,11 @@ class UseGraphiteConfig:
 class Config:
     git_dir: Path
 
-    aliases: Mapping[str, Sequence[str]] = dataclasses.field(default_factory=dict)
     trunk: str
+
+    @functools.cached_property
+    def aliases(self) -> Mapping[str, Sequence[str]]:
+        return load_aliases()
 
     @classmethod
     def setup(cls, inferred_config: InferredConfig, *, prompter: Prompter) -> Self:
@@ -85,10 +89,8 @@ class Config:
         *,
         git_dir: Path,
     ) -> Self:
-        aliases = load_aliases()
         return cls(
             git_dir=git_dir,
-            aliases=aliases,
             trunk=data["trunk"],
         )
 

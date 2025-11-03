@@ -45,7 +45,7 @@ def main() -> None:
     except ValueError:
         prompter = Prompter()
 
-    git = GitClient.load(Path.cwd())
+    git = GitClient(cwd=Path.cwd())
     config = ConfigManager.load(git_dir=git.git_dir)
     if config is None:
         if prompter is None:
