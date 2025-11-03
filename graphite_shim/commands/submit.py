@@ -1,7 +1,8 @@
 import argparse
 import dataclasses
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 
+from graphite_shim.branch_tree import BranchInfo
 from graphite_shim.commands.base import Command
 from graphite_shim.utils.term import print
 
@@ -24,7 +25,9 @@ class CommandSubmit(Command[SubmitArgs]):
     def run(self, args: SubmitArgs) -> None:
         # branches to submit, starting from trunk
         curr = self._git.get_curr_branch()
-        branches = list(self._store.get_stack(curr, descendants=args.submit_stack))
+        branches: Iterable[BranchInfo] = self._store.get_stack(curr, descendants=args.submit_stack)
+        if curr != self._config.trunk:
+            branches = [branch for branch in branches if branch.name != self._config.trunk]
 
         print("@(blue)Found branches:")
         for branch in branches:
