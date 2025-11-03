@@ -31,6 +31,6 @@ class CommandMove(Command[MoveArgs]):
             check=False,
         )
         if proc.returncode > 0:
-            self._git.run(["rebase", "--abort"], check=False)
+            self._git.run(["rebase", "--abort"], capture_output=True, check=False)
             raise UserError("Rebase failed")
         self._store.set_parent(curr, parent=args.onto)
