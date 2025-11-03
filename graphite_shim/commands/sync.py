@@ -27,7 +27,7 @@ class CommandSync(Command[SyncArgs]):
         self._update_trunk()
 
         print("\n@(blue)Cleaning up merged branches...")
-        for merged_branch in self._git.get_merged_branches():
+        for merged_branch in self._git.get_merged_branches(self._config.trunk):
             print(f"- {merged_branch}")
             self._git.run(["branch", "-D", merged_branch])
 

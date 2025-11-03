@@ -59,21 +59,23 @@ class GitClient:
     def does_branch_exist(self, name: str) -> bool:
         return self.query(["branch", "--list", name]) != ""
 
-    def get_merged_branches(self) -> Iterator[str]:
-        def get_other_branches(*extra_args: str) -> Iterator[str]:
-            branches = self.query(["branch", "--format=%(if)%(HEAD)%(then)%(else)%(refname:short)%(end)", *extra_args])
-            return (b for b in branches.splitlines() if b != "")
+    def get_merged_branches(self, trunk: str) -> Iterator[str]:
+        def get_branches(*extra_args: str) -> list[str]:
+            return self.query(["branch", "--format=%(refname:short)", *extra_args]).splitlines()
 
         # merged branches
-        yield from get_other_branches("--merged")
+        for branch in get_branches("--merged", trunk):
+            if branch == trunk:
+                continue
+            yield branch
 
         # squashed branches
-        for branch in get_other_branches("--no-merged"):
+        for branch in get_branches("--no-merged", trunk):
             # https://github.com/not-an-aardvark/git-delete-squashed
-            merge_base = self.query(["merge-base", "HEAD", branch])
+            merge_base = self.query(["merge-base", trunk, branch])
             tree_sha = self.query(["rev-parse", f"{branch}^{{tree}}"])
             test_commit = self.run(["commit-tree", tree_sha, "-p", merge_base, "-m", "_"], capture_output=True)
-            test_cherry_pick = self.run(["cherry", "HEAD", test_commit.stdout.strip()], capture_output=True)
+            test_cherry_pick = self.run(["cherry", trunk, test_commit.stdout.strip()], capture_output=True)
             if test_cherry_pick.stdout.startswith("-"):
                 yield branch
 
