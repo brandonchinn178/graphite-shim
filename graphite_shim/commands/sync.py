@@ -31,11 +31,12 @@ class CommandSync(Command[SyncArgs]):
 
         print("\n@(blue)Cleaning up merged branches...")
         merged_branches = list(self._git.get_merged_branches(trunk))
-        for merged_branch in merged_branches:
-            print(f"- {merged_branch}")
-        if curr in merged_branches:
-            self._git.run(["switch", trunk])
-        self._git.run(["branch", "-D", *merged_branches])
+        if merged_branches:
+            for merged_branch in merged_branches:
+                print(f"- {merged_branch}")
+            if curr in merged_branches:
+                self._git.run(["switch", trunk])
+            self._git.run(["branch", "-D", *merged_branches])
 
         # TODO: Implement after `gt restack` works on multiple branches
         # if args.restack:
