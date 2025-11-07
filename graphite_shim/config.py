@@ -19,7 +19,7 @@ CONFIG_FILE = ".graphite_shim/config.json"
 class ConfigManager:
     @staticmethod
     def setup(*, git: GitClient, prompter: Prompter) -> UseGraphiteConfig | Config:
-        (git.git_dir / CONFIG_FILE).parent.mkdir(parents=True, exist_ok=True)
+        (git.git_common_dir / CONFIG_FILE).parent.mkdir(parents=True, exist_ok=True)
 
         inferred_config = InferredConfig.load(git=git)
 
@@ -119,7 +119,7 @@ class InferredConfig:
         trunk = git.query(["rev-parse", "--abbrev-ref", "origin/HEAD"]).removeprefix("origin/")
 
         return cls(
-            config_dir=git.git_dir,
+            config_dir=git.git_common_dir,
             graphite_installed=graphite_installed,
             use_graphite=use_graphite,
             trunk=trunk,

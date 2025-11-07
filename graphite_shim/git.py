@@ -32,7 +32,7 @@ class GitClient:
         return Path(proc.stdout.strip())
 
     @functools.cached_property
-    def git_dir(self) -> Path:
+    def git_common_dir(self) -> Path:
         # shortcut, to avoid shelling out
         if (self.cwd / ".git").is_dir(follow_symlinks=False):
             return self.cwd / ".git"
@@ -56,7 +56,7 @@ class GitClient:
 
     def get_curr_branch(self) -> str:
         """Get the current branch."""
-        head_content = (self.git_dir / "HEAD").read_text()
+        head_content = (self.git_common_dir / "HEAD").read_text()
         m = re.match(r"ref: refs/heads/(?P<name>.+)", head_content)
         if not m:
             raise UserError("Not on a branch")
@@ -104,7 +104,7 @@ class GitTestClient(GitClient):
         return Path(".")
 
     @property
-    def git_dir(self) -> Path:
+    def git_common_dir(self) -> Path:
         return Path(".git")
 
     @property
