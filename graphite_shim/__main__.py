@@ -126,7 +126,7 @@ def run_cache_only(*, git: GitClient) -> None:
     data.
     """
     runner = CacheOnlyRunner(
-        git_dir=git.git_dir,
+        graphite_cache_dir=git.git_dir,
         curr_branch=git.get_curr_branch(),
     )
 

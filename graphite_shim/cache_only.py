@@ -16,14 +16,14 @@ from graphite_shim.exception import UserError
 
 
 class CacheOnlyRunner:
-    def __init__(self, *, git_dir: Path, curr_branch: str) -> None:
-        self._git_dir = git_dir
+    def __init__(self, *, graphite_cache_dir: Path, curr_branch: str) -> None:
+        self._graphite_cache_dir = graphite_cache_dir
         self._curr_branch = curr_branch
 
     @functools.cached_property
     def _cache_data(self) -> Mapping[str, Any]:
         try:
-            data: dict[str, Any] = json.loads((self._git_dir / ".graphite_cache_persist").read_text())
+            data: dict[str, Any] = json.loads((self._graphite_cache_dir / ".graphite_cache_persist").read_text())
             return data
         except FileNotFoundError:
             raise UserError("Could not find graphite cache") from None
