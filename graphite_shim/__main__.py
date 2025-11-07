@@ -56,7 +56,7 @@ def main() -> None:
         ConfigManager.save(config, config_dir=git.git_dir)
         if isinstance(config, Config):
             store = StoreManager.new(config=config)
-            StoreManager.save(store, git_dir=git.git_dir)
+            StoreManager.save(store, store_dir=git.git_dir)
         print("")
         print("@(green)graphite_shim configured!")
         print("~" * 80)
@@ -78,7 +78,7 @@ def main() -> None:
 
 
 def run_shim(*, prompter: Prompter | None, git: GitClient, config: Config) -> None:
-    store = StoreManager.load(git_dir=git.git_dir)
+    store = StoreManager.load(store_dir=git.git_dir)
 
     parser = argparse.ArgumentParser(prog="gt", description=__doc__)
     subparsers = parser.add_subparsers(title="commands", required=True, metavar="command")
@@ -114,7 +114,7 @@ def run_shim(*, prompter: Prompter | None, git: GitClient, config: Config) -> No
 
     cmd_args = args.parse_args(args)
     args.cmd.run(cmd_args)
-    StoreManager.save(store, git_dir=git.git_dir)
+    StoreManager.save(store, store_dir=git.git_dir)
 
 
 def run_cache_only(*, git: GitClient) -> None:

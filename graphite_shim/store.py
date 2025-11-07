@@ -16,11 +16,11 @@ class StoreManager:
         return BranchTree(trunk=config.trunk)
 
     @staticmethod
-    def load(*, git_dir: Path) -> Store:
-        data = json.loads((git_dir / STORE_FILE).read_text())
+    def load(*, store_dir: Path) -> Store:
+        data = json.loads((store_dir / STORE_FILE).read_text())
         return BranchTree.deserialize(data)
 
     @staticmethod
-    def save(store: Store, *, git_dir: Path) -> None:
+    def save(store: Store, *, store_dir: Path) -> None:
         data = store.serialize()
-        (git_dir / STORE_FILE).write_text(json.dumps(data))
+        (store_dir / STORE_FILE).write_text(json.dumps(data))
