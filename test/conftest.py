@@ -16,7 +16,7 @@ def fixture_git() -> GitTestClient:
 @pytest.fixture(name="config")
 def fixture_config(git: GitTestClient) -> Config:
     return Config(
-        git_dir=git.git_dir,
+        config_dir=git.git_dir,
         trunk="main",
     )
 

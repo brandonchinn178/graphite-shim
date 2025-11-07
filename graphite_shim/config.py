@@ -34,9 +34,9 @@ class ConfigManager:
             return Config.setup(inferred_config, prompter=prompter)
 
     @staticmethod
-    def load(*, git_dir: Path) -> UseGraphiteConfig | Config | None:
+    def load(*, config_dir: Path) -> UseGraphiteConfig | Config | None:
         try:
-            data = json.loads((git_dir / CONFIG_FILE).read_text())
+            data = json.loads((config_dir / CONFIG_FILE).read_text())
         except FileNotFoundError:
             return None
 
@@ -44,12 +44,12 @@ class ConfigManager:
             case "graphite":
                 return UseGraphiteConfig()
             case "non-graphite":
-                return Config.load(data, git_dir=git_dir)
+                return Config.load(data, config_dir=config_dir)
             case ty:
                 raise ValueError(f"Unknown config type: {ty}")
 
     @staticmethod
-    def save(config: UseGraphiteConfig | Config, *, git_dir: Path) -> None:
+    def save(config: UseGraphiteConfig | Config, *, config_dir: Path) -> None:
         match config:
             case UseGraphiteConfig():
                 data = {"type": "graphite"}
@@ -57,7 +57,7 @@ class ConfigManager:
                 data = {"type": "non-graphite", **config.serialize()}
             case _:
                 typing.assert_never(config)
-        (git_dir / CONFIG_FILE).write_text(json.dumps(data))
+        (config_dir / CONFIG_FILE).write_text(json.dumps(data))
 
 
 class UseGraphiteConfig:
@@ -66,7 +66,7 @@ class UseGraphiteConfig:
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class Config:
-    git_dir: Path
+    config_dir: Path
 
     trunk: str
 
@@ -80,17 +80,17 @@ class Config:
         data = {
             "trunk": trunk,
         }
-        return cls.load(data, git_dir=inferred_config.git_dir)
+        return cls.load(data, config_dir=inferred_config.config_dir)
 
     @classmethod
     def load(
         cls,
         data: dict[str, Any],
         *,
-        git_dir: Path,
+        config_dir: Path,
     ) -> Self:
         return cls(
-            git_dir=git_dir,
+            config_dir=config_dir,
             trunk=data["trunk"],
         )
 
@@ -105,7 +105,7 @@ class Config:
 
 @dataclasses.dataclass(frozen=True)
 class InferredConfig:
-    git_dir: Path
+    config_dir: Path
     graphite_installed: bool
     use_graphite: bool
     trunk: str
@@ -119,7 +119,7 @@ class InferredConfig:
         trunk = git.query(["rev-parse", "--abbrev-ref", "origin/HEAD"]).removeprefix("origin/")
 
         return cls(
-            git_dir=git.git_dir,
+            config_dir=git.git_dir,
             graphite_installed=graphite_installed,
             use_graphite=use_graphite,
             trunk=trunk,

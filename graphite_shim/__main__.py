@@ -46,14 +46,14 @@ def main() -> None:
         prompter = Prompter()
 
     git = GitClient(cwd=Path.cwd())
-    config = ConfigManager.load(git_dir=git.git_dir)
+    config = ConfigManager.load(config_dir=git.git_dir)
     if config is None:
         if prompter is None:
             raise UserError("gt not configured")
 
         print("@(blue)graphite_shim has not been configured on this repo yet.")
         config = ConfigManager.setup(git=git, prompter=prompter)
-        ConfigManager.save(config, git_dir=git.git_dir)
+        ConfigManager.save(config, config_dir=git.git_dir)
         if isinstance(config, Config):
             store = StoreManager.new(config=config)
             StoreManager.save(store, git_dir=git.git_dir)
