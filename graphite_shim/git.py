@@ -40,6 +40,19 @@ class GitClient:
         proc = _git(["rev-parse", "--git-common-dir"], capture_output=True, cwd=self.cwd)
         return Path(proc.stdout.strip())
 
+    @functools.cached_property
+    def git_dir(self) -> Path:
+        # shortcut, to avoid shelling out
+        if (self.cwd / ".git").is_dir(follow_symlinks=False):
+            return self.cwd / ".git"
+        elif (self.cwd / ".git").is_file():
+            git_content = (self.cwd / ".git").read_text()
+            if m := re.match(r"gitdir: (?P<path>.+)", git_content):
+                return Path(m.group("path"))
+
+        proc = _git(["rev-parse", "--git-dir"], capture_output=True, cwd=self.cwd)
+        return Path(proc.stdout.strip())
+
     # ----- Primary API ----- #
 
     def query(self, args: list[str], **kwargs: Any) -> str:
@@ -56,7 +69,7 @@ class GitClient:
 
     def get_curr_branch(self) -> str:
         """Get the current branch."""
-        head_content = (self.git_common_dir / "HEAD").read_text()
+        head_content = (self.git_dir / "HEAD").read_text()
         m = re.match(r"ref: refs/heads/(?P<name>.+)", head_content)
         if not m:
             raise UserError("Not on a branch")
