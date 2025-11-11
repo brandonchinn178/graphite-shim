@@ -83,6 +83,12 @@ class BranchTree:
             return
         self._parent_map = {to: info.parent} | {k: v for k, v in self._parent_map.items() if k != from_}
 
+    def remove_branch(self, branch: str) -> None:
+        info = self.get_branch(branch)
+        if info.is_trunk:
+            raise ValueError("Cannot remove trunk branch")
+        self._parent_map = {k: v for k, v in self._parent_map.items() if k != branch}
+
     def set_parent(self, branch: str, *, parent: str) -> None:
         """Set the parent of the given branch."""
         if branch == self._trunk:

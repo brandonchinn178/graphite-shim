@@ -44,6 +44,12 @@ class CommandSync(Command[SyncArgs]):
         #     for branch in self._store.get_branches():
         #         print(f"TODO: restack {branch}")
 
+        print("\n@(blue)Cleaning up old branches from cache...")
+        branches = set(self._git.query(["branch", "--format=%(refname:short)"]).splitlines())
+        for branch in self._store.get_branches():
+            if branch.name not in branches:
+                self._store.remove_branch(branch.name)
+
     def _update_trunk(self, *, curr: str, trunk: str) -> None:
         old_sha = self._git.query(["rev-parse", f"refs/heads/{trunk}"])
         new_sha = self._git.query(["rev-parse", f"refs/remotes/origin/{trunk}"])
