@@ -32,7 +32,11 @@ class CommandLog(Command[LogArgs]):
                 if not args.only_stack:
                     raise NotImplementedError  # not using this yet
 
-                print("TODO: gt log --stack")
+                branches = list(self._store.get_stack(curr))
+                for branch in reversed(branches):
+                    print(branch.name)
+                    parent = branch.parent if not branch.is_trunk else f"{branch.name}~1"
+                    self._git.run(["log", "--oneline", "--no-decorate", f"{parent}...{branch.name}"])
             case "short":
                 if args.only_stack:
                     branches = [branch.name for branch in self._store.get_stack(curr)]
@@ -41,7 +45,9 @@ class CommandLog(Command[LogArgs]):
                         self._config.trunk,
                         *(branch.name for branch in self._store.get_all_descendants(self._config.trunk)),
                     ]
-                print(branches)
-                print("TODO: gt log short")
+
+                # TODO: render graph
+                for branch in reversed(branches):
+                    print(branch)
             case "long":
                 raise NotImplementedError  # not using this yet
