@@ -19,17 +19,17 @@ def test_with_steps(cmd: CommandDown, git: GitTestClient, store: Store) -> None:
     store.set_parent("D", parent="C")
 
     with git.expect(
-        git.curr_branch("D"),
-        git.cmd(["switch", ...]),
+        git.on.get_curr_branch().returns("D"),
+        git.on.run(["switch", ...]),
     ):
         cmd.run(DownArgs(steps=2))
 
-    assert git.call_args[0] == ["switch", "B"]
+    assert git.calls[1].args[0] == ["switch", "B"]
 
 
 def test_with_trunk(cmd: CommandDown, git: GitTestClient, store: Store, capsys: pytest.CaptureFixture[str]) -> None:
     with git.expect(
-        git.curr_branch("main"),
+        git.on.get_curr_branch().returns("main"),
     ):
         cmd.run(DownArgs())
 
@@ -41,12 +41,12 @@ def test_overflow(cmd: CommandDown, git: GitTestClient, store: Store) -> None:
     store.set_parent("B", parent="A")
 
     with git.expect(
-        git.curr_branch("B"),
-        git.cmd(["switch", ...]),
+        git.on.get_curr_branch().returns("B"),
+        git.on.run(["switch", ...]),
     ):
         cmd.run(DownArgs(steps=100))
 
-    assert git.call_args[0] == ["switch", "main"]
+    assert git.calls[1].args[0] == ["switch", "main"]
 
 
 def test_e2e() -> None:
