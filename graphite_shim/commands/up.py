@@ -41,7 +41,7 @@ class CommandUp(Command[UpArgs]):
                     print(f"@(yellow)  - {child.name}")
 
                 while True:
-                    child_name = self._prompter.ask("Branch")
+                    child_name = self._prompter.ask("Select branch")
                     try:
                         branch = self._store.get_branch(child_name)
                         break

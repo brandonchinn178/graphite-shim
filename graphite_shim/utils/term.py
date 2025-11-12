@@ -26,7 +26,7 @@ class Prompter:
         return input(colorify(prompt))
 
     def ask(self, prompt: str, *, default: str = "") -> str:
-        suffix = f" [{default}]" if default else ""
+        suffix = f" [{default}]" if default else ":"
         resp = self.input(f"@(yellow){prompt}{suffix} ").strip()
         return resp if resp else default
 
