@@ -39,15 +39,15 @@ class CommandLog(Command[LogArgs]):
                     self._git.run(["log", "--oneline", "--no-decorate", f"{parent}...{branch.name}"])
             case "short":
                 if args.only_stack:
-                    branches = [branch.name for branch in self._store.get_stack(curr)]
+                    branch_names = [branch.name for branch in self._store.get_stack(curr)]
                 else:
-                    branches = [
+                    branch_names = [
                         self._config.trunk,
                         *(branch.name for branch in self._store.get_all_descendants(self._config.trunk)),
                     ]
 
                 # TODO: render graph
-                for branch in reversed(branches):
-                    print(branch)
+                for branch_name in reversed(branch_names):
+                    print(branch_name)
             case "long":
                 raise NotImplementedError  # not using this yet

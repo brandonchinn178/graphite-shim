@@ -109,6 +109,8 @@ class GitClient:
 
 class GitTestClient(GitClient):
     def __init__(self) -> None:
+        super().__init__(cwd=Path("/non_existent"))
+
         self._expectations: list[GitExpectation] | None = None
         self._call_args: list[list[str]] = []
 
@@ -118,6 +120,10 @@ class GitTestClient(GitClient):
 
     @property
     def git_common_dir(self) -> Path:
+        return Path(".git")
+
+    @property
+    def git_dir(self) -> Path:
         return Path(".git")
 
     @property
@@ -132,16 +138,30 @@ class GitTestClient(GitClient):
             raise RuntimeError(f"Expectations were not used: {self._expectations}")
         self._expectations = None
 
-    def on(self, args: list[str | EllipsisType]) -> GitExpectation:
-        return GitExpectation(args=args)
+    def curr_branch(self, branch: str) -> GitCurrBranchExpectation:
+        return GitCurrBranchExpectation(branch=branch)
 
-    def run(self, args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+    def cmd(self, args: list[str | EllipsisType]) -> GitCmdExpectation:
+        return GitCmdExpectation(args=args)
+
+    def _next_expectation[T](self, expected_cls: type[T]) -> T:
         if self._expectations is None:
             raise RuntimeError("git was invoked without expectations")
         if not self._expectations:
             raise RuntimeError("Ran out of expectations!")
 
         expectation = self._expectations.pop(0)
+        if not isinstance(expectation, expected_cls):
+            raise RuntimeError(f"Expected {expected_cls}, got: {expectation}")
+
+        return expectation
+
+    def get_curr_branch(self) -> str:
+        expectation = self._next_expectation(GitCurrBranchExpectation)
+        return expectation.branch
+
+    def run(self, args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        expectation = self._next_expectation(GitCmdExpectation)
         self._call_args.append(args)
 
         if Ellipsis not in expectation.args:
@@ -161,8 +181,16 @@ class GitTestClient(GitClient):
         )
 
 
+type GitExpectation = GitCurrBranchExpectation | GitCmdExpectation
+
+
 @dataclasses.dataclass
-class GitExpectation:
+class GitCurrBranchExpectation:
+    branch: str
+
+
+@dataclasses.dataclass
+class GitCmdExpectation:
     args: list[str | EllipsisType]
     _returncode: int = 0
     _stdout: str = ""

@@ -33,6 +33,9 @@ class CommandUp(Command[UpArgs]):
             elif len(children) == 1:
                 branch = children[0]
             else:
+                if self._prompter is None:
+                    raise ValueError("Multiple children available")
+
                 print("@(yellow)Multiple children available:")
                 for child in children:
                     print(f"@(yellow)  - {child.name}")
