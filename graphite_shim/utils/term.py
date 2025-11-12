@@ -25,8 +25,9 @@ class Prompter:
     def input(self, prompt: str) -> str:
         return input(colorify(prompt))
 
-    def ask(self, prompt: str, *, default: str) -> str:
-        resp = self.input(f"@(yellow){prompt} [{default}] ").strip()
+    def ask(self, prompt: str, *, default: str = "") -> str:
+        suffix = f" [{default}]" if default else ""
+        resp = self.input(f"@(yellow){prompt}{suffix} ").strip()
         return resp if resp else default
 
     def ask_yesno(self, prompt: str, *, default: bool) -> bool:

@@ -102,13 +102,19 @@ class BranchTree:
             curr = self._branch_infos[curr.parent]
             yield curr
 
-    def get_all_descendants(self, branch: str) -> Iterator[BranchInfo]:
-        """Get all descendants, in topological order."""
+    def get_children(self, branch: str) -> Iterator[BranchInfo]:
+        """Get immediate children of the given branch."""
 
         info = self._branch_infos[branch]
         for child in info.children:
             yield self._branch_infos[child]
-            yield from self.get_all_descendants(child)
+
+    def get_all_descendants(self, branch: str) -> Iterator[BranchInfo]:
+        """Get all descendants, in topological order."""
+
+        for child in self.get_children(branch):
+            yield child
+            yield from self.get_all_descendants(child.name)
 
     def get_stack(self, branch: str, *, descendants: bool = True) -> Iterator[BranchInfo]:
         """Get the stack for the given branch, starting at the trunk."""
