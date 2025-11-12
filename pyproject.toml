@@ -30,6 +30,7 @@ strict = true
 check_untyped_defs = true
 pretty = true
 warn_unreachable = true
+explicit_package_bases = true
 
 [tool.pytest.ini_options]
 addopts = [

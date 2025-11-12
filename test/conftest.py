@@ -4,8 +4,8 @@ import pytest
 
 from graphite_shim.commands.base import Command
 from graphite_shim.config import Config
-from graphite_shim.git import GitTestClient
 from graphite_shim.store import Store, StoreManager
+from test.utils.git import GitTestClient
 
 
 @pytest.fixture(name="git")

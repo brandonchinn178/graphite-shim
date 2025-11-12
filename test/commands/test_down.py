@@ -3,8 +3,8 @@ from collections.abc import Callable
 import pytest
 
 from graphite_shim.commands.down import CommandDown, DownArgs
-from graphite_shim.git import GitTestClient
 from graphite_shim.store import Store
+from test.utils.git import GitTestClient
 
 
 @pytest.fixture(name="cmd")
