@@ -4,6 +4,7 @@ from collections.abc import Callable
 
 from graphite_shim.commands.base import Command
 from graphite_shim.exception import UserError
+from graphite_shim.utils.term import print
 
 
 @dataclasses.dataclass(frozen=True)
@@ -26,6 +27,11 @@ class CommandMove(Command[MoveArgs]):
         curr_branch = self._store.get_branch(curr)
         if curr_branch.is_trunk:
             raise UserError("Cannot move the trunk branch")
+
+        if args.onto == curr_branch.parent:
+            print(f"@(green){args.onto} is already the parent")
+            return
+
         proc = self._git.run(
             ["rebase", curr_branch.parent, "--onto", args.onto],
             check=False,
