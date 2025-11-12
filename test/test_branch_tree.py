@@ -3,6 +3,31 @@ import pytest
 from graphite_shim.branch_tree import BranchTree
 
 
+class TestRemoveBranch:
+    def test_removes_branch(self) -> None:
+        branches = BranchTree(
+            trunk="main",
+            parent_map={
+                "A": "main",
+            },
+        )
+        branches.remove_branch("A")
+        with pytest.raises(ValueError):
+            branches.get_branch("A")
+
+    def test_updates_removed_branch_children(self) -> None:
+        branches = BranchTree(
+            trunk="main",
+            parent_map={
+                "A": "main",
+                "B": "A",
+            },
+        )
+        assert branches.get_branch("B").parent == "A"
+        branches.remove_branch("A")
+        assert branches.get_branch("B").parent == "main"
+
+
 class TestSetParent:
     def test_updates_get_parent(self) -> None:
         branches = BranchTree(
