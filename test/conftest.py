@@ -6,6 +6,12 @@ from graphite_shim.commands.base import Command
 from graphite_shim.config import Config
 from graphite_shim.store import Store, StoreManager
 from test.utils.git import GitTestClient
+from test.utils.prompter import TestPrompter
+
+
+@pytest.fixture(name="prompter")
+def fixture_prompter() -> TestPrompter:
+    return TestPrompter()
 
 
 @pytest.fixture(name="git")
@@ -28,12 +34,13 @@ def fixture_store(config: Config) -> Store:
 
 @pytest.fixture(name="init_cmd")
 def fixture_init_cmd[Args](
+    prompter: TestPrompter,
     git: GitTestClient,
     config: Config,
     store: Store,
 ) -> Callable[[type[Command[Args]]], Command[Args]]:
     return lambda cmd_cls: cmd_cls(
-        prompter=None,
+        prompter=prompter,
         git=git,
         config=config,
         store=store,

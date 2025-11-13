@@ -23,7 +23,7 @@ class ExpectorMixin:
         for name, value in inspect.getmembers(self):
             if not hasattr(value, "_expectation_builder"):
                 continue
-            setattr(self, name.lstrip("_"), value)
+            setattr(self, name.removeprefix("_"), value)
 
     @property
     def calls(self) -> Sequence[MockedCall]:
@@ -43,7 +43,11 @@ class ExpectorMixin:
 
 
 def mocked[T](mocked_impl: Callable[..., T]) -> Callable[..., T]:
-    mocked_name = mocked_impl.__name__.lstrip("_")
+    if mocked_impl.__name__.startswith("_"):
+        mocked_name = mocked_impl.__name__.removeprefix("_")
+    else:
+        raise RuntimeError("Mocked function should start with an underscore")
+
     expectation_attrs, mocked_sig = _extract_mock_args(mocked_impl)
 
     def wrapped(self: ExpectorMixin, *args: Any, **kwargs: Any) -> T:
@@ -80,13 +84,16 @@ class ExpectationBuilders:
         self._obj = obj
 
     def __getattr__(self, name: str) -> Callable[..., Expectation]:
-        mocked_func = getattr(self._obj, f"_{name}")
-        try:
-            builder = mocked_func._expectation_builder
-            assert isinstance(builder, ExpectationBuilder)
-            return builder
-        except AttributeError:
-            raise AttributeError(f"{name} is not a mocked function") from None
+        mocked_func = getattr(self._obj, f"_{name}", None)
+        if mocked_func is None:
+            raise AttributeError(f"{name} is not a mocked function")
+
+        builder = getattr(mocked_func, "_expectation_builder", None)
+        if builder is None:
+            raise AttributeError(f"{name} is not a mocked function")
+
+        assert isinstance(builder, ExpectationBuilder)
+        return builder
 
 
 @dataclasses.dataclass(frozen=True)
