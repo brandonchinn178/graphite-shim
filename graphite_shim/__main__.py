@@ -38,9 +38,10 @@ def handle_errors() -> Generator[None, None, None]:
 
 @handle_errors()
 def main() -> None:
+    argv = sys.argv.copy()
     try:
-        no_interactive_index = sys.argv.index("--no-interactive")
-        sys.argv.pop(no_interactive_index)
+        no_interactive_index = argv.index("--no-interactive")
+        argv.pop(no_interactive_index)
         prompter = None
     except ValueError:
         prompter = Prompter()
@@ -64,7 +65,7 @@ def main() -> None:
     match config:
         case UseGraphiteConfig():
             if os.environ.get("CACHE_ONLY", "").lower() == "true":
-                run_cache_only(git=git)
+                run_cache_only(argv, git=git)
                 return
 
             graphite = find_graphite()
@@ -72,12 +73,12 @@ def main() -> None:
                 raise UserError("`gt` is not installed!")
             os.execvp(graphite, sys.argv)
         case Config():
-            run_shim(prompter=prompter, git=git, config=config)
+            run_shim(argv, prompter=prompter, git=git, config=config)
         case _:
             typing.assert_never(config)
 
 
-def run_shim(*, prompter: Prompter | None, git: GitClient, config: Config) -> None:
+def run_shim(argv: list[str], *, prompter: Prompter | None, git: GitClient, config: Config) -> None:
     store = StoreManager.load(store_dir=git.git_common_dir)
 
     parser = argparse.ArgumentParser(prog="gt", description=__doc__)
@@ -108,7 +109,7 @@ def run_shim(*, prompter: Prompter | None, git: GitClient, config: Config) -> No
             return parse_args(ns.alias_args)
         return ns
 
-    args = parse_args(sys.argv[1:])
+    args = parse_args(argv[1:])
     if not hasattr(args, "cmd"):
         parser.error("No command provided")
 
@@ -117,7 +118,7 @@ def run_shim(*, prompter: Prompter | None, git: GitClient, config: Config) -> No
     StoreManager.save(store, store_dir=git.git_common_dir)
 
 
-def run_cache_only(*, git: GitClient) -> None:
+def run_cache_only(argv: list[str], *, git: GitClient) -> None:
     """
     Run a subset of graphite commands using only the Graphite cache.
 
@@ -138,13 +139,13 @@ def run_cache_only(*, git: GitClient) -> None:
         subparsers.add_parser(cmd).set_defaults(func=func)
 
     # Show nicer error message on invalid command
-    match sys.argv:
+    match argv:
         case [_, cmd, *_] if cmd not in cmds:
             subparsers.add_parser(cmd).set_defaults(
                 func=lambda: parser.error(f"Graphite command not supported with CACHE_ONLY: {cmd}")
             )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv[1:])
     args.func()
 
 
