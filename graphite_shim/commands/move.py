@@ -32,11 +32,12 @@ class CommandMove(Command[MoveArgs]):
             print(f"@(green){args.onto} is already the parent")
             return
 
+        self._store.set_parent(curr, parent=args.onto)
+
         proc = self._git.run(
             ["-c", "rebase.autoStash=true", "rebase", curr_branch.parent, "--onto", args.onto],
             check=False,
         )
         if proc.returncode > 0:
             self._git.run(["rebase", "--abort"], capture_output=True, check=False)
-            raise UserError("Rebase failed")
-        self._store.set_parent(curr, parent=args.onto)
+            raise UserError("Rebase failed, rebase manually")
