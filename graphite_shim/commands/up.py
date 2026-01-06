@@ -3,7 +3,6 @@ import dataclasses
 from collections.abc import Callable
 
 from graphite_shim.commands.base import Command
-from graphite_shim.utils.term import print
 
 
 @dataclasses.dataclass(frozen=True)
@@ -35,18 +34,10 @@ class CommandUp(Command[UpArgs]):
             else:
                 if self._prompter is None:
                     raise ValueError("Multiple children available")
-
-                print("@(yellow)Multiple children available:")
-                for child in children:
-                    print(f"@(yellow)  - {child.name}")
-
-                while True:
-                    child_name = self._prompter.ask("Select branch")
-                    try:
-                        branch = self._store.get_branch(child_name)
-                        break
-                    except ValueError:
-                        continue
+                branch = self._prompter.ask_oneof(
+                    "Select child to go to",
+                    {child.name: child for child in children},
+                )
             steps -= 1
 
         self._git.run(["switch", branch.name])

@@ -40,7 +40,7 @@ def test_multiple_children(
     store.set_parent("B", parent="main")
 
     with (
-        prompter.expect(prompter.on.input("@(yellow)Select branch: ").returns("B")),
+        prompter.expect(prompter.on.input("@(yellow)> ").returns("B")),
         git.expect(
             git.on.get_curr_branch().returns("main"),
             git.on.run(["switch", ...]),
@@ -51,10 +51,10 @@ def test_multiple_children(
     assert git.calls[1].args[0] == ["switch", "B"]
     assert capsys.readouterr().out == textwrap.dedent(
         """\
-        Multiple children available:
+        Select child to go to:
           - A
           - B
-        Select branch: """
+        > """
     )
 
 

@@ -2,7 +2,7 @@ import functools
 import io
 import re
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 
 
@@ -29,6 +29,15 @@ class Prompter:
         suffix = f" [{default}]" if default else ":"
         resp = self.input(f"@(yellow){prompt}{suffix} ").strip()
         return resp if resp else default
+
+    def ask_oneof[T](self, prompt: str, options: Mapping[str, T]) -> T:
+        print(f"@(yellow){prompt}:")
+        for opt in options:
+            print(f"@(yellow)  - {opt}")
+        while True:
+            opt = self.input("@(yellow)> ").strip()
+            if result := options.get(opt):
+                return result
 
     def ask_yesno(self, prompt: str, *, default: bool) -> bool:
         default_disp = "Y/n" if default else "y/N"
