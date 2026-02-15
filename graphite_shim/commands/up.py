@@ -14,7 +14,7 @@ class CommandUp(Command[UpArgs]):
     """Checkout a branch up the stack (towards descendants)."""
 
     def add_args(self, parser: argparse.ArgumentParser) -> Callable[[argparse.Namespace], UpArgs]:
-        parser.add_argument("steps", metavar="n", nargs="?", default=1)
+        parser.add_argument("steps", metavar="n", nargs="?", type=int, default=1)
 
         return lambda args: UpArgs(
             steps=args.steps,

@@ -15,7 +15,7 @@ class CommandDown(Command[DownArgs]):
     """Checkout a branch down the stack (towards ancestors)."""
 
     def add_args(self, parser: argparse.ArgumentParser) -> Callable[[argparse.Namespace], DownArgs]:
-        parser.add_argument("steps", metavar="n", nargs="?", default=1)
+        parser.add_argument("steps", metavar="n", nargs="?", type=int, default=1)
 
         return lambda args: DownArgs(
             steps=args.steps,
