@@ -1,0 +1,42 @@
+hook hooky {
+    command hooky lint {
+        fix_args --fix
+        pass_files file
+    }
+    files *
+}
+
+hook ruff-check {
+    command uv run ruff check {
+        fix_args --fix
+    }
+    files *.py
+}
+
+hook ruff-format {
+    command uv run ruff format {
+        check_args --check
+    }
+    files *.py
+}
+
+hook mypy {
+    command uv run mypy
+    files *.py
+}
+
+hook pytest {
+    command env "PYTHONPATH=." uv run pytest {
+        pass_files none
+    }
+    files *.py
+}
+
+lint_rules {
+    - check_broken_symlinks
+    - check_case_conflict
+    - check_merge_conflict
+    - end_of_file_fixer
+    // - no_commit_to_branch
+    - trailing_whitespace
+}
