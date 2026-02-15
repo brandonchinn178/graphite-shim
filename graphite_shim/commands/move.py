@@ -33,7 +33,7 @@ class CommandMove(Command[MoveArgs]):
             return
 
         proc = self._git.run(
-            ["-c", "rebase.autoStash=true", "rebase", curr_branch.parent, "--onto", args.onto],
+            ["-c", "rebase.autoStash=true", "rebase", "-i", curr_branch.parent, "--onto", args.onto],
             check=False,
         )
         if proc.returncode > 0:
