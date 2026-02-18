@@ -4,6 +4,7 @@ from collections.abc import Callable
 from typing import Literal
 
 from graphite_shim.commands.base import Command
+from graphite_shim.utils.term import print
 
 
 @dataclasses.dataclass(frozen=True)
@@ -39,15 +40,25 @@ class CommandLog(Command[LogArgs]):
                     self._git.run(["log", "--oneline", "--no-decorate", f"{parent}...{branch.name}"])
             case "short":
                 if args.only_stack:
-                    branch_names = [branch.name for branch in self._store.get_stack(curr)]
+                    starts = [curr]
                 else:
-                    branch_names = [
-                        self._config.trunk,
-                        *(branch.name for branch in self._store.get_all_descendants(self._config.trunk)),
+                    starts = [
+                        branch.name
+                        for branch in self._store.get_children(self._config.trunk)
                     ]
+                    if len(starts) == 0:
+                        starts = [self._config.trunk]
 
-                # TODO: render graph
-                for branch_name in reversed(branch_names):
-                    print(branch_name)
+                stacks = [
+                    list(self._store.get_stack(start))
+                    for start in starts
+                ]
+                for stack in sorted(stacks, key=len, reverse=True):
+                    for branch in reversed(stack):
+                        out = branch.name
+                        if branch.name == curr:
+                            out = f"@(cyan){out}"
+                        print(out)
+                    print("@(gray)" + "─" * 40)
             case "long":
                 raise NotImplementedError  # not using this yet
