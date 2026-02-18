@@ -74,6 +74,7 @@ CODES = {
     "blue": 34,
     "magenta": 35,
     "cyan": 36,
+    "gray": 90,
 }
 
 
