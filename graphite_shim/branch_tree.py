@@ -96,8 +96,13 @@ class BranchTree:
         if info.is_trunk:
             raise ValueError("Cannot remove trunk branch")
         self._parent_map = {
-            # ruff-keep-multiline
-            k: info.parent if v.name == branch else v
+            k: (
+                v
+                if v.name != branch
+                # if the parent is being removed, replace the parent
+                # with the removed branch's parent
+                else dataclasses.replace(v, name=info.parent.name)
+            )
             for k, v in self._parent_map.items()
             if k != branch
         }
