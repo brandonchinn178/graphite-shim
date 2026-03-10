@@ -81,6 +81,9 @@ class GitClient:
     def does_branch_exist(self, name: str) -> bool:
         return self.query(["branch", "--list", name]) != ""
 
+    def resolve_commit(self, branch: str) -> str:
+        return self.query(["rev-parse", branch])
+
     def get_merged_branches(self, trunk: str) -> Iterator[str]:
         def get_branches(*extra_args: str) -> list[str]:
             return self.query(["branch", "--format=%(refname:short)", *extra_args]).splitlines()

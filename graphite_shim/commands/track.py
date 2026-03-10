@@ -2,6 +2,7 @@ import argparse
 import dataclasses
 from collections.abc import Callable
 
+from graphite_shim.branch_tree import ParentInfo
 from graphite_shim.commands.base import Command
 from graphite_shim.exception import UserError
 
@@ -26,4 +27,5 @@ class CommandTrack(Command[TrackArgs]):
         if curr == self._config.trunk:
             raise UserError(f"{curr} is the trunk branch")
         else:
-            self._store.set_parent(curr, parent=args.parent)
+            parent = ParentInfo(name=args.parent, last_commit=self._git.resolve_commit(args.parent))
+            self._store.set_parent(curr, parent=parent)

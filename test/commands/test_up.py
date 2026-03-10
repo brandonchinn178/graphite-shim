@@ -5,6 +5,7 @@ import pytest
 
 from graphite_shim.commands.up import CommandUp, UpArgs
 from graphite_shim.store import Store
+from test.utils.branch_tree import mk_parent
 from test.utils.git import GitTestClient
 from test.utils.prompter import TestPrompter
 
@@ -15,10 +16,10 @@ def fixture_cmd(init_cmd: Callable[[type[CommandUp]], CommandUp]) -> CommandUp:
 
 
 def test_with_steps(cmd: CommandUp, git: GitTestClient, store: Store) -> None:
-    store.set_parent("A", parent="main")
-    store.set_parent("B", parent="A")
-    store.set_parent("C", parent="B")
-    store.set_parent("D", parent="C")
+    store.set_parent("A", parent=mk_parent("main"))
+    store.set_parent("B", parent=mk_parent("A"))
+    store.set_parent("C", parent=mk_parent("B"))
+    store.set_parent("D", parent=mk_parent("C"))
 
     with git.expect(
         git.on.get_curr_branch().returns("main"),
@@ -36,8 +37,8 @@ def test_multiple_children(
     store: Store,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    store.set_parent("A", parent="main")
-    store.set_parent("B", parent="main")
+    store.set_parent("A", parent=mk_parent("main"))
+    store.set_parent("B", parent=mk_parent("main"))
 
     with (
         prompter.expect(prompter.on.input("@(yellow)> ").returns("B")),
@@ -59,8 +60,8 @@ def test_multiple_children(
 
 
 def test_overflow(cmd: CommandUp, git: GitTestClient, store: Store) -> None:
-    store.set_parent("A", parent="main")
-    store.set_parent("B", parent="A")
+    store.set_parent("A", parent=mk_parent("main"))
+    store.set_parent("B", parent=mk_parent("A"))
 
     with git.expect(
         git.on.get_curr_branch().returns("main"),

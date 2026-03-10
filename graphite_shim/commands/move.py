@@ -2,6 +2,7 @@ import argparse
 import dataclasses
 from collections.abc import Callable
 
+from graphite_shim.branch_tree import ParentInfo
 from graphite_shim.commands.base import Command
 from graphite_shim.exception import UserError
 from graphite_shim.utils.term import print
@@ -28,17 +29,27 @@ class CommandMove(Command[MoveArgs]):
         if curr_branch.is_trunk:
             raise UserError("Cannot move the trunk branch")
 
-        if args.onto == curr_branch.parent:
+        if args.onto == curr_branch.parent.name:
             print(f"@(green){args.onto} is already the parent")
             return
 
-        interactive = ["-i"] if self._prompter is not None else []
-
+        onto_commit = self._git.resolve_commit(args.onto)
         proc = self._git.run(
-            ["-c", "rebase.autoStash=true", "rebase", *interactive, curr_branch.parent, "--onto", args.onto],
+            [
+                *("-c", "rebase.autoStash=true"),
+                "rebase",
+                *(["-i"] if self._prompter is not None else []),
+                curr_branch.parent.name,
+                *("--onto", onto_commit),
+            ],
             check=False,
         )
         if proc.returncode > 0:
             self._git.run(["rebase", "--abort"], capture_output=True, check=False)
             raise UserError("Rebase failed")
-        self._store.set_parent(curr, parent=args.onto)
+
+        parent = ParentInfo(
+            name=args.onto,
+            last_commit=onto_commit,
+        )
+        self._store.set_parent(curr, parent=parent)

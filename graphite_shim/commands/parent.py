@@ -23,4 +23,4 @@ class CommandParent(Command[ParentArgs]):
         branch = self._store.get_branch(curr)
         if branch.is_trunk:
             raise UserError("Cannot get the parent of the trunk branch.")
-        print(branch.parent)
+        print(branch.parent.name)

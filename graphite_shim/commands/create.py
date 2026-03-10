@@ -2,6 +2,7 @@ import argparse
 import dataclasses
 from collections.abc import Callable
 
+from graphite_shim.branch_tree import ParentInfo
 from graphite_shim.commands.base import Command
 from graphite_shim.exception import UserError
 
@@ -29,6 +30,7 @@ class CommandCreate(Command[CreateArgs]):
             raise UserError(f"Branch already exists: {args.name}")
 
         curr = self._git.get_curr_branch()
+        curr_commit = self._git.resolve_commit(curr)
 
         if args.insert:
             children = list(self._store.get_children(curr))
@@ -47,6 +49,9 @@ class CommandCreate(Command[CreateArgs]):
             child = None
 
         self._git.run(["switch", "-c", args.name])
-        self._store.set_parent(args.name, parent=curr)
+
+        parent = ParentInfo(name=curr, last_commit=curr_commit)
+        self._store.set_parent(args.name, parent=parent)
         if child:
-            self._store.set_parent(child.name, parent=args.name)
+            child_parent = ParentInfo(name=args.name, last_commit=curr_commit)
+            self._store.set_parent(child.name, parent=child_parent)

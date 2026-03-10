@@ -4,6 +4,7 @@ import pytest
 
 from graphite_shim.commands.down import CommandDown, DownArgs
 from graphite_shim.store import Store
+from test.utils.branch_tree import mk_parent
 from test.utils.git import GitTestClient
 
 
@@ -13,10 +14,10 @@ def fixture_cmd(init_cmd: Callable[[type[CommandDown]], CommandDown]) -> Command
 
 
 def test_with_steps(cmd: CommandDown, git: GitTestClient, store: Store) -> None:
-    store.set_parent("A", parent="main")
-    store.set_parent("B", parent="A")
-    store.set_parent("C", parent="B")
-    store.set_parent("D", parent="C")
+    store.set_parent("A", parent=mk_parent("main"))
+    store.set_parent("B", parent=mk_parent("A"))
+    store.set_parent("C", parent=mk_parent("B"))
+    store.set_parent("D", parent=mk_parent("C"))
 
     with git.expect(
         git.on.get_curr_branch().returns("D"),
@@ -37,8 +38,8 @@ def test_with_trunk(cmd: CommandDown, git: GitTestClient, store: Store, capsys: 
 
 
 def test_overflow(cmd: CommandDown, git: GitTestClient, store: Store) -> None:
-    store.set_parent("A", parent="main")
-    store.set_parent("B", parent="A")
+    store.set_parent("A", parent=mk_parent("main"))
+    store.set_parent("B", parent=mk_parent("A"))
 
     with git.expect(
         git.on.get_curr_branch().returns("B"),

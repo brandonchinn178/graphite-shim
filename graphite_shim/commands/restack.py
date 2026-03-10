@@ -34,7 +34,10 @@ class CommandRestack(Command[RestackArgs]):
         curr = self._store.get_branch(self._git.get_curr_branch())
         if curr.is_trunk:
             return
-        parent = self._store.get_branch(curr.parent)
-        rebase = self._git.run(["rebase", parent.name], check=False)
+
+        new_base = self._git.resolve_commit(curr.parent.name)
+        rebase = self._git.run(["rebase", curr.parent.last_commit, "--onto", new_base], check=False)
         if rebase.returncode > 0:
             raise UserError("Rebase failed, resolve conflicts and run `gt continue`")
+
+        self._store.update_parent_commit(curr.name, commit=new_base)

@@ -6,7 +6,10 @@ import dataclasses
 import functools
 from collections import defaultdict
 from collections.abc import Iterator, Mapping, Sequence
+from pathlib import Path
 from typing import Any, Literal, Self
+
+from graphite_shim.git import GitClient
 
 
 class BranchTree:
@@ -14,17 +17,17 @@ class BranchTree:
         self,
         *,
         trunk: str = "main",
-        parent_map: Mapping[str, str] = {},
+        parent_map: Mapping[str, ParentInfo] = {},
     ) -> None:
         self._trunk = trunk
         self._parent_map_unsafe = parent_map
 
     @property
-    def _parent_map(self) -> Mapping[str, str]:
+    def _parent_map(self) -> Mapping[str, ParentInfo]:
         return self._parent_map_unsafe
 
     @_parent_map.setter
-    def _parent_map(self, parent_map: Mapping[str, str]) -> None:
+    def _parent_map(self, parent_map: Mapping[str, ParentInfo]) -> None:
         self._parent_map_unsafe = parent_map
         with contextlib.suppress(AttributeError):
             del self._branch_infos  # clear cache
@@ -33,7 +36,7 @@ class BranchTree:
     def _branch_infos(self) -> Mapping[str, BranchInfo]:
         children_map = defaultdict(list)
         for branch, parent in self._parent_map.items():
-            children_map[parent].append(branch)
+            children_map[parent.name].append(branch)
         return {
             self._trunk: TrunkBranchInfo(
                 name=self._trunk,
@@ -54,13 +57,13 @@ class BranchTree:
     def deserialize(cls, data: dict[str, Any]) -> Self:
         return cls(
             trunk=data["trunk"],
-            parent_map=data["branches"],
+            parent_map={k: ParentInfo.deserialize(v) for k, v in data["branches"].items()},
         )
 
     def serialize(self) -> dict[str, Any]:
         return {
             "trunk": self._trunk,
-            "branches": self._parent_map_unsafe,
+            "branches": {k: v.serialize() for k, v in self._parent_map_unsafe.items()},
         }
 
     # ----- Public API ---- #
@@ -81,25 +84,45 @@ class BranchTree:
         info = self.get_branch(from_)
         if info.is_trunk:
             return
-        self._parent_map = {to: info.parent} | {k: v for k, v in self._parent_map.items() if k != from_}
+        self._parent_map = {to: info.parent} | {
+            # ruff-keep-multiline
+            k: v
+            for k, v in self._parent_map.items()
+            if k != from_
+        }
 
     def remove_branch(self, branch: str) -> None:
         info = self.get_branch(branch)
         if info.is_trunk:
             raise ValueError("Cannot remove trunk branch")
-        self._parent_map = {k: info.parent if v == branch else v for k, v in self._parent_map.items() if k != branch}
+        self._parent_map = {
+            # ruff-keep-multiline
+            k: info.parent if v.name == branch else v
+            for k, v in self._parent_map.items()
+            if k != branch
+        }
 
-    def set_parent(self, branch: str, *, parent: str) -> None:
+    def set_parent(self, branch: str, *, parent: ParentInfo) -> None:
         """Set the parent of the given branch."""
         if branch == self._trunk:
             raise ValueError("Cannot set the parent of the trunk branch")
         self._parent_map = {**self._parent_map, branch: parent}
 
+    def update_parent_commit(self, branch: str, *, commit: str) -> None:
+        """Update the commit of the parent of the given branch."""
+        if branch == self._trunk:
+            raise ValueError("Cannot set the parent of the trunk branch")
+        parent = self._parent_map[branch]
+        self._parent_map = {
+            **self._parent_map,
+            branch: dataclasses.replace(parent, last_commit=commit),
+        }
+
     def get_ancestors(self, branch: str) -> Iterator[BranchInfo]:
         """Get upstream branches, starting from the branch's parent to the trunk."""
         curr = self._branch_infos[branch]
         while isinstance(curr, NonTrunkBranchInfo):
-            curr = self._branch_infos[curr.parent]
+            curr = self._branch_infos[curr.parent.name]
             yield curr
 
     def get_children(self, branch: str) -> Iterator[BranchInfo]:
@@ -124,6 +147,36 @@ class BranchTree:
             yield from self.get_all_descendants(branch)
 
 
+@dataclasses.dataclass(frozen=True, kw_only=True)
+class ParentInfo:
+    name: str
+    # The commit of the parent we last rebased on top of
+    last_commit: str
+
+    # ----- Serialization ---- #
+
+    @classmethod
+    def deserialize(cls, data: Any) -> Self:
+        if isinstance(data, str):
+            git = GitClient(cwd=Path.cwd())
+            branch = data
+            return cls(
+                name=branch,
+                last_commit=git.resolve_commit(branch),
+            )
+
+        return cls(
+            name=data["name"],
+            last_commit=data["last_commit"],
+        )
+
+    def serialize(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "last_commit": self.last_commit,
+        }
+
+
 type BranchInfo = TrunkBranchInfo | NonTrunkBranchInfo
 
 
@@ -142,4 +195,4 @@ class TrunkBranchInfo(BranchInfoBase):
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class NonTrunkBranchInfo(BranchInfoBase):
     is_trunk: Literal[False] = False
-    parent: str
+    parent: ParentInfo

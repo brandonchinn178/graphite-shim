@@ -4,6 +4,7 @@ from collections.abc import Callable, Iterable
 from typing import Literal, Self
 
 from graphite_shim.commands.base import Command
+from graphite_shim.git import GitClient
 from graphite_shim.store import Store
 from graphite_shim.utils.term import print
 
@@ -45,6 +46,7 @@ class CommandLog(Command[LogArgs]):
                     branch_filter=[curr] if args.only_stack else None,
                     curr_branch=curr,
                     store=self._store,
+                    git=self._git,
                 )
                 for line in graph.lines():
                     print(line)
@@ -55,6 +57,7 @@ class CommandLog(Command[LogArgs]):
 @dataclasses.dataclass(frozen=True)
 class Graph:
     branches: list[tuple[int, str]]
+    untracked_branches: list[str]
     curr_branch: str
 
     @classmethod
@@ -65,6 +68,7 @@ class Graph:
         branch_filter: list[str] | None,
         curr_branch: str,
         store: Store,
+        git: GitClient,
     ) -> Self:
         def _build(
             branch: str,
@@ -90,19 +94,27 @@ class Graph:
         if branch_filter is not None:
             path_filter = [branch.name for branch in store.get_stack(curr_branch)]
 
-        branches = _build(trunk, path_filter=path_filter, column=0)
+        branches = list(_build(trunk, path_filter=path_filter, column=0))
+
+        all_branches = git.query(["branch", "--format=%(refname:short)"]).splitlines()
+        untracked_branches = list(set(all_branches) - {b for _, b in branches})
+
         return cls(
-            branches=list(branches),
+            branches=branches,
+            untracked_branches=untracked_branches,
             curr_branch=curr_branch,
         )
 
     def lines(self) -> Iterable[str]:
-        for col, branch in self.branches:
-            out = f"○ {branch}"
-            if branch == self.curr_branch:
-                out = f"@(cyan){out}"
+        def color_curr(s: str, *, branch: str) -> str:
+            return f"@(cyan){s}" if branch == self.curr_branch else s
 
-            prefix = ""
-            if col > 0:
-                prefix = "├" + ("─" * (col - 1))
-            yield prefix + out
+        for col, branch in self.branches:
+            prefix = "" if col == 0 else "├" + ("─" * (col - 1))
+            yield prefix + color_curr(f"○ {branch}", branch=branch)
+
+        if self.untracked_branches:
+            yield ""
+            yield "Untracked branches:"
+            for branch in self.untracked_branches:
+                yield color_curr(f"* {branch}", branch=branch)
