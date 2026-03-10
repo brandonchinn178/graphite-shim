@@ -1,6 +1,7 @@
 import argparse
 import dataclasses
 from collections.abc import Callable
+from typing import Any
 
 from graphite_shim.commands.base import Command
 
@@ -21,23 +22,27 @@ class CommandUp(Command[UpArgs]):
         )
 
     def run(self, args: UpArgs) -> None:
-        curr = self._git.get_curr_branch()
-        branch = self._store.get_branch(curr)
+        self._run(self, args)
+
+    @staticmethod
+    def _run(cmd: Command[Any], args: UpArgs) -> None:
+        curr = cmd._git.get_curr_branch()
+        branch = cmd._store.get_branch(curr)
 
         steps = args.steps
         while steps > 0:
-            children = list(self._store.get_children(branch.name))
+            children = list(cmd._store.get_children(branch.name))
             if len(children) == 0:
                 break
             elif len(children) == 1:
                 branch = children[0]
             else:
-                if self._prompter is None:
+                if cmd._prompter is None:
                     raise ValueError("Multiple children available")
-                branch = self._prompter.ask_oneof(
+                branch = cmd._prompter.ask_oneof(
                     "Select child to go to",
                     {child.name: child for child in children},
                 )
             steps -= 1
 
-        self._git.run(["switch", branch.name])
+        cmd._git.run(["switch", branch.name])

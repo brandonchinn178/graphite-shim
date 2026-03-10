@@ -1,6 +1,7 @@
 import argparse
 import dataclasses
 from collections.abc import Callable
+from typing import Any
 
 from graphite_shim.commands.base import Command
 from graphite_shim.utils.term import print
@@ -22,15 +23,28 @@ class CommandDown(Command[DownArgs]):
         )
 
     def run(self, args: DownArgs) -> None:
-        curr = self._git.get_curr_branch()
-        ancestors = list(self._store.get_ancestors(curr))
+        self._run(self, args, include_main=True)
+
+    @staticmethod
+    def _run(cmd: Command[Any], args: DownArgs, *, include_main: bool) -> None:
+        curr = cmd._git.get_curr_branch()
+        ancestors = list(cmd._store.get_ancestors(curr))
 
         if len(ancestors) == 0:
-            print(f"Already on @(green){self._config.trunk}")
+            print(f"Already on @(green){cmd._config.trunk}")
             return
-        elif args.steps > len(ancestors):
-            dest = ancestors[-1]
-        else:
-            dest = ancestors[args.steps - 1]
 
-        self._git.run(["switch", dest.name])
+        if not include_main:
+            if len(ancestors) == 1:
+                print("Already on lowest branch in stack")
+                return
+            ancestors = ancestors[:-1]
+
+        dest = (
+            ancestors[args.steps - 1]
+            if args.steps <= len(ancestors)
+            # ruff-multi-line
+            else ancestors[-1]
+        )
+
+        cmd._git.run(["switch", dest.name])
