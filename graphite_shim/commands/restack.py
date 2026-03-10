@@ -10,6 +10,7 @@ from graphite_shim.exception import UserError
 class RestackArgs:
     only_current: bool
     only_downstream: bool
+    interactive: bool
 
 
 class CommandRestack(Command[RestackArgs]):
@@ -19,9 +20,13 @@ class CommandRestack(Command[RestackArgs]):
         parser.add_argument("--only", action="store_true")
         parser.add_argument("--downstream", action="store_true")
 
+        # graphite-shim specific
+        parser.add_argument("--interactive", "-i", action="store_true")
+
         return lambda args: RestackArgs(
             only_current=args.only,
             only_downstream=args.downstream,
+            interactive=args.interactive,
         )
 
     def run(self, args: RestackArgs) -> None:
@@ -36,7 +41,15 @@ class CommandRestack(Command[RestackArgs]):
             return
 
         new_base = self._git.resolve_commit(curr.parent.name)
-        rebase = self._git.run(["rebase", curr.parent.last_commit, "--onto", new_base], check=False)
+        rebase = self._git.run(
+            [
+                "rebase",
+                *(["-i"] if args.interactive else []),
+                curr.parent.last_commit,
+                *("--onto", new_base),
+            ],
+            check=False,
+        )
         if rebase.returncode > 0:
             raise UserError("Rebase failed, resolve conflicts and run `gt continue`")
 
