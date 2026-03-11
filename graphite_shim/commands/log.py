@@ -37,8 +37,8 @@ class CommandLog(Command[LogArgs]):
 
                 branches = list(self._store.get_stack(curr))
                 for branch in reversed(branches):
-                    print(branch.name)
-                    parent = branch.parent if not branch.is_trunk else f"{branch.name}~1"
+                    print(f"@(green)* {branch.name}")
+                    parent = branch.parent.name if not branch.is_trunk else f"{branch.name}~1"
                     self._git.run(["log", "--oneline", "--no-decorate", f"{parent}...{branch.name}"])
             case "short":
                 graph = Graph.build(
