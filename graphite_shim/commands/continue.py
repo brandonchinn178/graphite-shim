@@ -20,7 +20,7 @@ class CommandContinue(Command[ContinueArgs]):
     def run(self, args: ContinueArgs) -> None:
         new_base = self._git.query(["rev-parse", "rebase-merge/onto"])
 
-        rebase = self._git.run(["-c", "rebase.backend=apply", "rebase", "--continue"], check=False)
+        rebase = self._git.run(["-c", "core.editor=true", "rebase", "--continue"], check=False)
         if rebase.returncode > 0:
             raise UserError("Rebase failed, resolve conflicts and run `gt continue`")
 
