@@ -22,7 +22,11 @@ class CommandDelete(Command[DeleteArgs]):
         )
 
     def run(self, args: DeleteArgs) -> None:
-        branch = self._store.get_branch(args.branch)
+        try:
+            branch = self._store.get_branch(args.branch)
+        except ValueError as e:
+            raise UserError(str(e)) from None
+
         if branch.is_trunk:
             raise UserError("Cannot delete the trunk branch")
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 import functools
 import re
+import shlex
 import subprocess
 from collections.abc import Iterator
 from pathlib import Path
@@ -17,7 +18,19 @@ def _git(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
         "text": True,
         **kwargs,
     }
-    return subprocess.run(["git", *args], **kwargs)
+    try:
+        return subprocess.run(["git", *args], **kwargs)
+    except subprocess.CalledProcessError as e:
+        msg = f"command returned exit code {e.returncode}: {shlex.join(e.cmd)}"
+        if e.stdout:
+            msg += f"\n{e.stdout}"
+        if e.stderr:
+            msg += f"\n{e.stderr}"
+        raise GitClientError(msg) from None
+
+
+class GitClientError(Exception):
+    pass
 
 
 @dataclasses.dataclass(frozen=True)

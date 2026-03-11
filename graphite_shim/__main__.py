@@ -16,7 +16,7 @@ from graphite_shim.commands import get_all_commands
 from graphite_shim.config import Config, ConfigManager, UseGraphiteConfig
 from graphite_shim.exception import UserError
 from graphite_shim.find_graphite import find_graphite
-from graphite_shim.git import GitClient
+from graphite_shim.git import GitClient, GitClientError
 from graphite_shim.store import StoreManager
 from graphite_shim.utils.term import Prompter, print, printerr
 
@@ -26,7 +26,7 @@ def handle_errors() -> Generator[None, None, None]:
     try:
         yield
     except Exception as e:
-        if isinstance(e, UserError):
+        if isinstance(e, (UserError, GitClientError)):
             printerr(f"@(red)@(bold)ERROR:@(reset) {e}")
         else:
             printerr("\n" + "*" * 80)
