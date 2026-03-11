@@ -10,6 +10,7 @@ from graphite_shim.utils.term import print
 @dataclasses.dataclass(frozen=True)
 class SubmitArgs:
     submit_stack: bool
+    force: bool
 
 
 class CommandSubmit(Command[SubmitArgs]):
@@ -17,9 +18,11 @@ class CommandSubmit(Command[SubmitArgs]):
 
     def add_args(self, parser: argparse.ArgumentParser) -> Callable[[argparse.Namespace], SubmitArgs]:
         parser.add_argument("--stack", action="store_true")
+        parser.add_argument("--force", "-f", action="store_true")
 
         return lambda args: SubmitArgs(
             submit_stack=args.stack,
+            force=args.force,
         )
 
     def run(self, args: SubmitArgs) -> None:
@@ -34,4 +37,5 @@ class CommandSubmit(Command[SubmitArgs]):
             print(f"- @(cyan){branch.name}")
 
         print("\n@(blue)Pushing branches to remote...")
-        self._git.run(["push", "--atomic", "--force-with-lease", "origin", *(branch.name for branch in branches)])
+        force = "--force" if args.force else "--force-with-lease"
+        self._git.run(["push", "--atomic", force, "origin", *(branch.name for branch in branches)])
