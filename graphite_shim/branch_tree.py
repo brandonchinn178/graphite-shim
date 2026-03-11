@@ -4,6 +4,7 @@ import abc
 import contextlib
 import dataclasses
 import functools
+import itertools
 from collections import defaultdict
 from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
@@ -144,12 +145,23 @@ class BranchTree:
             yield child
             yield from self.get_all_descendants(child.name)
 
-    def get_stack(self, branch: str, *, descendants: bool = True) -> Iterator[BranchInfo]:
+    def get_stack(
+        self,
+        branch: str,
+        *,
+        descendants: bool = True,
+        include_trunk: bool = True,
+    ) -> Iterator[BranchInfo]:
         """Get the stack for the given branch, starting at the trunk."""
-        yield from reversed(list(self.get_ancestors(branch)))
+        ancestor_branches: Iterator[BranchInfo] = reversed(list(self.get_ancestors(branch)))
+        if not include_trunk:
+            ancestor_branches = itertools.islice(ancestor_branches, 1, None)
+
+        descendant_branches = self.get_all_descendants(branch) if descendants else []
+
+        yield from ancestor_branches
         yield self._branch_infos[branch]
-        if descendants:
-            yield from self.get_all_descendants(branch)
+        yield from descendant_branches
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)

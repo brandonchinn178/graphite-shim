@@ -54,23 +54,22 @@ class CommandRestack(Command[RestackArgs]):
         targets: list[BranchInfo]
         match args.targets:
             case RestackTargets.FULL_STACK:
-                targets = list(self._store.get_stack(curr.name))[1:]
+                targets = list(self._store.get_stack(curr.name, include_trunk=False))
             case RestackTargets.ONLY_DOWNSTREAM:
                 targets = list(self._store.get_all_descendants(curr.name))
             case RestackTargets.ONLY_CURRENT:
                 targets = [curr]
 
-        plan = RebasePlan(
-            git_dir=self._git.git_dir,
-            targets=[branch.name for branch in targets],
-        )
-
-        self._restack(self, start_plan=plan)
+        self._restack(self, targets=targets)
 
     @staticmethod
-    def _restack(cmd: Command[Any], *, start_plan: RebasePlan | None) -> None:
-        if start_plan:
-            plan = start_plan
+    def _restack(cmd: Command[Any], *, targets: list[BranchInfo] | None) -> None:
+        if targets:
+            plan = RebasePlan(
+                git_dir=cmd._git.git_dir,
+                orig_branch=cmd._git.get_curr_branch(),
+                targets=[branch.name for branch in targets],
+            )
             is_start = True
         else:
             plan = RebasePlan.load(git_dir=cmd._git.git_dir)
@@ -96,7 +95,8 @@ class CommandRestack(Command[RestackArgs]):
                     "--continue",
                 ]
 
-            print(f"@(blue)Restacking {curr.name}...")
+            print(f"@(yellow)Restacking {curr.name}...")
+            cmd._git.run(["switch", curr.name])
             rebase = cmd._git.run(git_cmd, check=False)
             if rebase.returncode > 0:
                 plan.save()
@@ -111,12 +111,19 @@ class CommandRestack(Command[RestackArgs]):
             plan = dataclasses.replace(plan, targets=plan.targets[1:])
             is_start = True
 
-        plan.clear()
+        CommandRestack._reset(cmd, plan=plan)
+
+    @staticmethod
+    def _reset(cmd: Command[Any], *, plan: RebasePlan | None = None) -> None:
+        plan_ = plan or RebasePlan.load(git_dir=cmd._git.git_dir)
+        plan_.clear()
+        cmd._git.run(["switch", plan_.orig_branch])
 
 
 @dataclasses.dataclass(frozen=True)
 class RebasePlan:
     git_dir: Path
+    orig_branch: str
     targets: list[str]
 
     FILE: ClassVar[str] = ".graphite_shim/rebase_plan.json"
@@ -126,11 +133,13 @@ class RebasePlan:
         data = json.loads((git_dir / cls.FILE).read_text())
         return cls(
             git_dir=git_dir,
+            orig_branch=data["orig_branch"],
             targets=data["targets"],
         )
 
     def save(self) -> None:
         data = {
+            "orig_branch": self.orig_branch,
             "targets": self.targets,
         }
         (self.git_dir / self.FILE).write_text(json.dumps(data))

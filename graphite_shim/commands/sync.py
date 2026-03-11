@@ -3,6 +3,8 @@ import dataclasses
 from collections.abc import Callable
 
 from graphite_shim.commands.base import Command
+from graphite_shim.commands.restack import CommandRestack
+from graphite_shim.exception import UserError
 from graphite_shim.utils.term import print
 
 
@@ -38,11 +40,16 @@ class CommandSync(Command[SyncArgs]):
                 self._git.run(["switch", trunk])
             self._git.run(["branch", "-D", *merged_branches])
 
-        # TODO: Implement after `gt restack` works on multiple branches
-        # if args.restack:
-        #     print("\n@(blue)Restacking branches...")
-        #     for branch in self._store.get_branches():
-        #         print(f"TODO: restack {branch}")
+        if args.restack:
+            print("\n@(blue)Restacking branches...")
+            for branch in self._store.get_children(trunk):
+                targets = list(self._store.get_stack(branch.name, include_trunk=False))
+                try:
+                    CommandRestack._restack(self, targets=targets)
+                except UserError:
+                    print("@(red)Restack failed, skipping...")
+                    self._git.run(["rebase", "--abort"])
+                    CommandRestack._reset(self)
 
         print("\n@(blue)Cleaning up old branches from cache...")
         branches = set(self._git.query(["branch", "--format=%(refname:short)"]).splitlines())

@@ -3,6 +3,7 @@ import dataclasses
 from collections.abc import Callable
 
 from graphite_shim.commands.base import Command
+from graphite_shim.commands.restack import CommandRestack
 
 
 @dataclasses.dataclass(frozen=True)
@@ -18,3 +19,4 @@ class CommandAbort(Command[AbortArgs]):
 
     def run(self, args: AbortArgs) -> None:
         self._git.run(["rebase", "--abort"], check=False)
+        CommandRestack._reset(self)

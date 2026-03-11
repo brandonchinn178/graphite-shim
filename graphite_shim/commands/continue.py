@@ -18,4 +18,4 @@ class CommandContinue(Command[ContinueArgs]):
         return lambda args: ContinueArgs()
 
     def run(self, args: ContinueArgs) -> None:
-        CommandRestack._restack(self, start_plan=None)
+        CommandRestack._restack(self, targets=None)
