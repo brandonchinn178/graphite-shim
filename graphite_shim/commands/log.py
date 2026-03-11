@@ -78,27 +78,27 @@ class Graph:
             column: int,
         ) -> Iterable[tuple[str, int, int]]:
             children = list(store.get_children(branch))
-            for i, child in enumerate(children):
-                if path_filter is not None:
-                    if path_filter[:1] == [child.name]:
-                        path_filter = path_filter[1:]
-                    else:
-                        continue
+            next_calls = [
+                (child, path_filter[1:] if path_filter is not None else None)
+                for child in children
+                if path_filter is None or path_filter[:1] == [child.name]
+            ]
+            for i, (child, next_path_filter) in enumerate(next_calls):
                 yield from _build(
                     child.name,
-                    path_filter=path_filter,
+                    path_filter=next_path_filter,
                     column=column + i,
                 )
-            yield (branch, column, len(children))
+            yield (branch, column, len(next_calls))
 
         path_filter = None
         if branch_filter is not None:
-            path_filter = [branch.name for branch in store.get_stack(curr_branch)]
+            path_filter = [branch.name for branch in store.get_stack(curr_branch)][1:]
 
         branches = list(_build(trunk, path_filter=path_filter, column=0))
 
         all_branches = git.query(["branch", "--format=%(refname:short)"]).splitlines()
-        untracked_branches = list(set(all_branches) - {b for b, _, _ in branches})
+        untracked_branches = list(set(all_branches) - {b.name for b in store.get_branches()})
 
         return cls(
             branches=branches,
