@@ -3,7 +3,7 @@ import dataclasses
 from collections.abc import Callable
 
 from graphite_shim.commands.base import Command
-from graphite_shim.exception import UserError
+from graphite_shim.commands.restack import CommandRestack
 
 
 @dataclasses.dataclass(frozen=True)
@@ -18,11 +18,4 @@ class CommandContinue(Command[ContinueArgs]):
         return lambda args: ContinueArgs()
 
     def run(self, args: ContinueArgs) -> None:
-        new_base = self._git.query(["rev-parse", "rebase-merge/onto"])
-
-        rebase = self._git.run(["-c", "core.editor=true", "rebase", "--continue"], check=False)
-        if rebase.returncode > 0:
-            raise UserError("Rebase failed, resolve conflicts and run `gt continue`")
-
-        curr = self._git.get_curr_branch()
-        self._store.update_parent_commit(curr, commit=new_base)
+        CommandRestack._restack(self, start_plan=None)
