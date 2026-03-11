@@ -104,9 +104,13 @@ def run_shim(argv: list[str], *, prompter: Prompter | None, git: GitClient, conf
         alias_parser.set_defaults(alias_args=alias_args)
 
     def parse_args(args: list[str]) -> argparse.Namespace:
-        ns = parser.parse_args(args)
+        ns, extra_args = parser.parse_known_args(args)
         if hasattr(ns, "alias_args"):
-            return parse_args(ns.alias_args)
+            return parse_args(ns.alias_args + extra_args)
+        elif len(extra_args) > 0:
+            # Parse again with parse_args to get proper error
+            parser.parse_args(args)
+            raise AssertionError("parse_args did not error")
         return ns
 
     args = parse_args(argv[1:])
