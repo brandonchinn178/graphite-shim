@@ -56,7 +56,8 @@ class CommandLog(Command[LogArgs]):
 
 @dataclasses.dataclass(frozen=True)
 class Graph:
-    branches: list[tuple[int, str]]
+    # List of (branch name, column, number of children)
+    branches: list[tuple[str, int, int]]
     untracked_branches: list[str]
     curr_branch: str
 
@@ -75,8 +76,8 @@ class Graph:
             *,
             path_filter: list[str] | None,
             column: int,
-        ) -> Iterable[tuple[int, str]]:
-            children = store.get_children(branch)
+        ) -> Iterable[tuple[str, int, int]]:
+            children = list(store.get_children(branch))
             for i, child in enumerate(children):
                 if path_filter is not None:
                     if path_filter[:1] == [child.name]:
@@ -88,7 +89,7 @@ class Graph:
                     path_filter=path_filter,
                     column=column + i,
                 )
-            yield (column, branch)
+            yield (branch, column, len(children))
 
         path_filter = None
         if branch_filter is not None:
@@ -97,7 +98,7 @@ class Graph:
         branches = list(_build(trunk, path_filter=path_filter, column=0))
 
         all_branches = git.query(["branch", "--format=%(refname:short)"]).splitlines()
-        untracked_branches = list(set(all_branches) - {b for _, b in branches})
+        untracked_branches = list(set(all_branches) - {b for b, _, _ in branches})
 
         return cls(
             branches=branches,
@@ -106,15 +107,16 @@ class Graph:
         )
 
     def lines(self) -> Iterable[str]:
-        def color_curr(s: str, *, branch: str) -> str:
-            return f"@(cyan){s}" if branch == self.curr_branch else s
+        def color_curr(branch: str) -> Callable[[str], str]:
+            return lambda s: f"@(cyan){s}@(reset)" if branch == self.curr_branch else s
 
-        for col, branch in self.branches:
-            prefix = "" if col == 0 else "├" + ("─" * (col - 1))
-            yield prefix + color_curr(f"○ {branch}", branch=branch)
+        for branch, col, num_children in self.branches:
+            color = color_curr(branch)
+            junctions = "" if num_children <= 1 else "─┴" * (num_children - 2) + "─┘"
+            yield ("│ " * col) + color("○") + junctions + " " + color(branch)
 
         if self.untracked_branches:
             yield ""
             yield "Untracked branches:"
             for branch in self.untracked_branches:
-                yield color_curr(f"* {branch}", branch=branch)
+                yield color_curr(branch)(f"* {branch}")
