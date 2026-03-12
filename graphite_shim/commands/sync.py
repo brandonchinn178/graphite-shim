@@ -31,15 +31,6 @@ class CommandSync(Command[SyncArgs]):
         self._git.run(["fetch"])
         self._update_trunk(curr=curr, trunk=trunk)
 
-        print("\n@(blue)Cleaning up merged branches...")
-        merged_branches = list(self._git.get_merged_branches(trunk))
-        if merged_branches:
-            for merged_branch in merged_branches:
-                print(f"- {merged_branch}")
-            if curr in merged_branches:
-                self._git.run(["switch", trunk])
-            self._git.run(["branch", "-D", *merged_branches])
-
         if args.restack:
             print("\n@(blue)Restacking branches...")
             for branch in self._store.get_children(trunk):
@@ -50,6 +41,15 @@ class CommandSync(Command[SyncArgs]):
                     print("@(red)Restack failed, skipping...")
                     self._git.run(["rebase", "--abort"])
                     CommandRestack._reset(self)
+
+        print("\n@(blue)Cleaning up merged branches...")
+        merged_branches = list(self._git.get_merged_branches(trunk))
+        if merged_branches:
+            for merged_branch in merged_branches:
+                print(f"- {merged_branch}")
+            if curr in merged_branches:
+                self._git.run(["switch", trunk])
+            self._git.run(["branch", "-D", *merged_branches])
 
         print("\n@(blue)Cleaning up old branches from cache...")
         branches = set(self._git.query(["branch", "--format=%(refname:short)"]).splitlines())
