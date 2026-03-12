@@ -1,8 +1,10 @@
+import contextlib
 import functools
 import io
+import os
 import re
 import sys
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from typing import Any
 
 
@@ -19,6 +21,16 @@ def _print(msg: str, *, end: str = "\n", get_file: Callable[[], io.StringIO | An
 
 print = functools.partial(_print, get_file=lambda: sys.stdout)
 printerr = functools.partial(_print, get_file=lambda: sys.stderr)
+
+
+@contextlib.contextmanager
+def suppress_output() -> Iterator[None]:
+    with (
+        open(os.devnull, "w") as devnull,
+        contextlib.redirect_stdout(devnull),
+        contextlib.redirect_stderr(devnull),
+    ):
+        yield
 
 
 class Prompter:

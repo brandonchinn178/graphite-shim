@@ -4,6 +4,7 @@ import argparse
 import dataclasses
 import enum
 import json
+import subprocess
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, ClassVar, Self
@@ -81,6 +82,9 @@ class CommandRestack(Command[RestackArgs]):
             assert isinstance(curr, NonTrunkBranchInfo)
 
             if is_start:
+                print(f"@(blue)Restacking {curr.name}...")
+                cmd._git.run(["switch", curr.name], stderr=subprocess.DEVNULL)
+
                 new_base = cmd._git.resolve_commit(curr.parent.name)
                 git_cmd = [
                     "rebase",
@@ -88,6 +92,8 @@ class CommandRestack(Command[RestackArgs]):
                     *("--onto", new_base),
                 ]
             else:
+                print("@(blue)Continuing restack...")
+
                 new_base = cmd._git.query(["rev-parse", "rebase-merge/onto"])
                 git_cmd = [
                     *("-c", "core.editor=true"),
@@ -95,8 +101,6 @@ class CommandRestack(Command[RestackArgs]):
                     "--continue",
                 ]
 
-            print(f"@(yellow)Restacking {curr.name}...")
-            cmd._git.run(["switch", curr.name])
             rebase = cmd._git.run(git_cmd, check=False)
             if rebase.returncode > 0:
                 plan.save()
@@ -117,7 +121,7 @@ class CommandRestack(Command[RestackArgs]):
     def _reset(cmd: Command[Any], *, plan: RebasePlan | None = None) -> None:
         plan_ = plan or RebasePlan.load(git_dir=cmd._git.git_dir)
         plan_.clear()
-        cmd._git.run(["switch", plan_.orig_branch])
+        cmd._git.run(["switch", plan_.orig_branch], stderr=subprocess.DEVNULL)
 
 
 @dataclasses.dataclass(frozen=True)

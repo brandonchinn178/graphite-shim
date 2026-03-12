@@ -5,7 +5,7 @@ from collections.abc import Callable
 from graphite_shim.commands.base import Command
 from graphite_shim.commands.restack import CommandRestack
 from graphite_shim.exception import UserError
-from graphite_shim.utils.term import print
+from graphite_shim.utils.term import print, suppress_output
 
 
 @dataclasses.dataclass(frozen=True)
@@ -36,9 +36,12 @@ class CommandSync(Command[SyncArgs]):
             for branch in self._store.get_children(trunk):
                 targets = list(self._store.get_stack(branch.name, include_trunk=False))
                 try:
-                    CommandRestack._restack(self, targets=targets)
+                    print(f"@(yellow)Restacking {branch.name}...", end="")
+                    with suppress_output():
+                        CommandRestack._restack(self, targets=targets)
+                    print(" @(green)OK")
                 except UserError:
-                    print("@(red)Restack failed, skipping...")
+                    print(" @(red)FAIL@(reset) - skipping...")
                     self._git.run(["rebase", "--abort"])
                     CommandRestack._reset(self)
 

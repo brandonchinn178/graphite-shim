@@ -5,6 +5,7 @@ import functools
 import re
 import shlex
 import subprocess
+import sys
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,9 @@ def _git(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
         "text": True,
         **kwargs,
     }
+    if "capture_output" not in kwargs:
+        kwargs.setdefault("stdout", sys.stdout)
+        kwargs.setdefault("stderr", sys.stderr)
     try:
         return subprocess.run(["git", *args], **kwargs)
     except subprocess.CalledProcessError as e:
