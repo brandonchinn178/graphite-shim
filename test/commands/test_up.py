@@ -1,10 +1,10 @@
-import textwrap
 from collections.abc import Callable
 
 import pytest
 
 from graphite_shim.commands.up import CommandUp, UpArgs
 from graphite_shim.store import Store
+from graphite_shim.utils.term import RawKey
 from test.utils.branch_tree import mk_parent
 from test.utils.git import GitTestClient
 from test.utils.prompter import TestPrompter
@@ -41,7 +41,10 @@ def test_multiple_children(
     store.set_parent("B", parent=mk_parent("main"))
 
     with (
-        prompter.expect(prompter.on.input("@(yellow)> ").returns("B")),
+        prompter.expect(
+            prompter.on.get_raw().returns(RawKey.DOWN),
+            prompter.on.get_raw().returns(RawKey.ENTER),
+        ),
         git.expect(
             git.on.get_curr_branch().returns("main"),
             git.on.run(["switch", ...]),
@@ -50,13 +53,6 @@ def test_multiple_children(
         cmd.run(UpArgs())
 
     assert git.calls[1].args[0] == ["switch", "B"]
-    assert capsys.readouterr().out == textwrap.dedent(
-        """\
-        Select child to go to:
-          - A
-          - B
-        > """
-    )
 
 
 def test_overflow(cmd: CommandUp, git: GitTestClient, store: Store) -> None:

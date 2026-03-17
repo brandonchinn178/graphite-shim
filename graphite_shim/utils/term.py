@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 import contextlib
+import enum
 import functools
 import io
 import os
 import re
 import sys
+import termios
+import tty
 from collections.abc import Callable, Iterator, Mapping
 from typing import Any
 
@@ -42,21 +47,55 @@ class Prompter:
         resp = self.input(f"@(yellow){prompt}{suffix} ").strip()
         return resp if resp else default
 
-    def ask_oneof[T](self, prompt: str, options: Mapping[str, T]) -> T:
-        print(f"@(yellow){prompt}:")
-        for opt in options:
-            print(f"@(yellow)  - {opt}")
-        while True:
-            opt = self.input("@(yellow)> ").strip()
-            if result := options.get(opt):
-                return result
-
     def ask_yesno(self, prompt: str, *, default: bool) -> bool:
         default_disp = "Y/n" if default else "y/N"
         resp = self.ask(prompt, default=default_disp)
         if resp == default_disp:
             return default
         return resp.lower() in ("y", "yes")
+
+    def ask_oneof[T](self, prompt: str, options: Mapping[str, T]) -> T:
+        option_list = list(options.items())
+        num_options = len(option_list)
+        print(f"@(yellow){prompt}:")
+
+        with hidden_cursor():
+            curr_index = 0
+            while True:
+                for i, (opt, _) in enumerate(option_list):
+                    cursor = ">" if i == curr_index else " "
+                    print(f"@(cyan){cursor} @(yellow){opt}")
+
+                match self.get_raw():
+                    case RawKey.ENTER:
+                        _, result = option_list[curr_index]
+                        return result
+                    case RawKey.UP:
+                        curr_index = (curr_index - 1) % num_options
+                    case RawKey.DOWN:
+                        curr_index = (curr_index + 1) % num_options
+                    case RawKey.CTRL_C:
+                        raise KeyboardInterrupt
+
+                # Move cursor back to start
+                print("\033[F" * num_options, end="")
+
+    def get_raw(self) -> RawKey:
+        with raw_tty():
+            key = sys.stdin.read(1)
+            if key == "\x1b":
+                key += sys.stdin.read(2)
+        match key:
+            case "\x1b[A":
+                return RawKey.UP
+            case "\x1b[B":
+                return RawKey.DOWN
+            case "\r" | "\n":
+                return RawKey.ENTER
+            case "\x03":
+                return RawKey.CTRL_C
+            case _:
+                return RawKey.OTHER
 
 
 def colorify(msg: str, *, reset: bool = True) -> str:
@@ -93,3 +132,32 @@ CODES = {
 def to_escape_code(*codes: int) -> str:
     # https://stackoverflow.com/a/33206814/4966649
     return f"\033[{';'.join(str(x) for x in codes)}m"
+
+
+class RawKey(enum.StrEnum):
+    UP = enum.auto()
+    DOWN = enum.auto()
+    ENTER = enum.auto()
+    CTRL_C = enum.auto()
+    OTHER = enum.auto()
+
+
+@contextlib.contextmanager
+def raw_tty() -> Iterator[None]:
+    fd = sys.stdin.fileno()
+    old_settings = tty.setraw(fd)
+    try:
+        yield
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+
+@contextlib.contextmanager
+def hidden_cursor() -> Iterator[None]:
+    sys.stdout.write("\033[?25l")
+    sys.stdout.flush()
+    try:
+        yield
+    finally:
+        sys.stdout.write("\033[?25h")
+        sys.stdout.flush()
