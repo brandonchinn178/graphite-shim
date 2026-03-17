@@ -25,6 +25,9 @@ from graphite_shim.utils.term import Prompter, print, printerr
 def handle_errors() -> Generator[None, None, None]:
     try:
         yield
+    except KeyboardInterrupt:
+        print("\nExiting...")
+        sys.exit(130)
     except Exception as e:
         if isinstance(e, (UserError, GitClientError)):
             printerr(f"@(red)@(bold)ERROR:@(reset) {e}")
