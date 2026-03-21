@@ -1,5 +1,6 @@
 import argparse
 import dataclasses
+import sys
 from collections.abc import Callable
 
 from graphite_shim.commands.base import Command
@@ -37,6 +38,7 @@ class CommandSync(Command[SyncArgs]):
                 targets = list(self._store.get_stack(branch.name, include_trunk=False))
                 try:
                     print(f"@(yellow)Restacking {branch.name}...", end="")
+                    sys.stdout.flush()
                     with suppress_output():
                         CommandRestack._restack(self, targets=targets)
                     print(" @(green)OK")
