@@ -12,13 +12,15 @@ import tty
 from collections.abc import Callable, Iterator, Mapping
 from typing import Any
 
+FORCE_COLOR = "--color" in sys.argv
+
 
 def _print(msg: str, *, end: str = "\n", get_file: Callable[[], io.StringIO | Any]) -> None:
     """Convenience function for printing colored output."""
     file = get_file()
 
     # strip escape codes if not a TTY
-    msg = colorify(msg) if file.isatty() else re.sub(r"@\(\w+\)", "", msg)
+    msg = colorify(msg) if FORCE_COLOR or file.isatty() else re.sub(r"@\(\w+\)", "", msg)
 
     file.write(msg)
     file.write(end)

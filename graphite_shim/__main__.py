@@ -116,6 +116,10 @@ def run_shim(argv: list[str], *, prompter: Prompter | None, git: GitClient, conf
             raise AssertionError("parse_args did not error")
         return ns
 
+    # Ignore manually-parsed flags
+    with contextlib.suppress(ValueError):
+        argv.pop(argv.index("--color"))
+
     args = parse_args(argv[1:])
     if not hasattr(args, "cmd"):
         parser.error("No command provided")
