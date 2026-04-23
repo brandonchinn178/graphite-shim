@@ -43,7 +43,8 @@ class CommandCreate(Command[CreateArgs]):
                     raise ValueError("--insert specified, but current branch has multiple children")
                 child = self._prompter.ask_oneof(
                     "Select child to move onto the new branch",
-                    {child.name: child for child in children},
+                    children,
+                    render=lambda child: child.name,
                 )
         else:
             child = None

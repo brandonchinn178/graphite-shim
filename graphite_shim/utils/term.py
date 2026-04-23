@@ -9,7 +9,7 @@ import re
 import sys
 import termios
 import tty
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Callable, Generator, Sequence
 from typing import Any
 
 FORCE_COLOR = "--color" in sys.argv
@@ -31,7 +31,7 @@ printerr = functools.partial(_print, get_file=lambda: sys.stderr)
 
 
 @contextlib.contextmanager
-def suppress_output() -> Iterator[None]:
+def suppress_output() -> Generator[None]:
     with (
         open(os.devnull, "w") as devnull,
         contextlib.redirect_stdout(devnull),
@@ -56,22 +56,27 @@ class Prompter:
             return default
         return resp.lower() in ("y", "yes")
 
-    def ask_oneof[T](self, prompt: str, options: Mapping[str, T]) -> T:
-        option_list = list(options.items())
-        num_options = len(option_list)
+    def ask_oneof[T](
+        self,
+        prompt: str,
+        options: Sequence[T],
+        *,
+        render: Callable[[T], str] = str,
+        start_index: int = 0,
+    ) -> T:
+        num_options = len(options)
         print(f"@(yellow){prompt}:")
 
         with hidden_cursor():
-            curr_index = 0
+            curr_index = start_index
             while True:
-                for i, (opt, _) in enumerate(option_list):
-                    cursor = ">" if i == curr_index else " "
-                    print(f"@(cyan){cursor} @(yellow){opt}")
+                for i, opt in enumerate(options):
+                    cursor = "@(bg-gray)>" if i == curr_index else " "
+                    print(f"@(cyan){cursor} @(yellow){render(opt)}")
 
                 match self.get_raw():
                     case RawKey.ENTER:
-                        _, result = option_list[curr_index]
-                        return result
+                        return options[curr_index]
                     case RawKey.UP:
                         curr_index = (curr_index - 1) % num_options
                     case RawKey.DOWN:
@@ -112,13 +117,14 @@ def colorify(msg: str, *, reset: bool = True) -> str:
     def replace(match: re.Match[str]) -> str:
         return to_escape_code(CODES[match.group(1)])
 
-    return re.sub(r"@\((\w+)\)", replace, msg)
+    return re.sub(r"@\(([\w-]+)\)", replace, msg)
 
 
 # ----- Low level API ----- #
 
 CODES = {
     "reset": 0,
+    "fg-reset": 39,
     "bold": 1,
     # foreground colors
     "red": 31,
@@ -128,6 +134,8 @@ CODES = {
     "magenta": 35,
     "cyan": 36,
     "gray": 90,
+    # background colors
+    "bg-gray": 100,
 }
 
 
@@ -145,7 +153,7 @@ class RawKey(enum.StrEnum):
 
 
 @contextlib.contextmanager
-def raw_tty() -> Iterator[None]:
+def raw_tty() -> Generator[None]:
     fd = sys.stdin.fileno()
     old_settings = tty.setraw(fd)
     try:
@@ -155,7 +163,7 @@ def raw_tty() -> Iterator[None]:
 
 
 @contextlib.contextmanager
-def hidden_cursor() -> Iterator[None]:
+def hidden_cursor() -> Generator[None]:
     sys.stdout.write("\033[?25l")
     sys.stdout.flush()
     try:

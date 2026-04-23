@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import argparse
 import dataclasses
 from collections.abc import Callable, Iterable
-from typing import Literal, Self
+from typing import Any, Literal, Self
 
 from graphite_shim.commands.base import Command
 from graphite_shim.git import GitClient
@@ -41,17 +43,34 @@ class CommandLog(Command[LogArgs]):
                     parent = branch.parent.name if not branch.is_trunk else f"{branch.name}~1"
                     self._git.run(["log", "--oneline", "--no-decorate", f"{parent}...{branch.name}"])
             case "short":
-                graph = Graph.build(
-                    self._config.trunk,
+                graph = self._build_graph(
+                    self,
                     branch_filter=[curr] if args.only_stack else None,
                     curr_branch=curr,
-                    store=self._store,
-                    git=self._git,
                 )
-                for line in graph.lines():
+                for _, line in graph.branch_lines():
+                    print(line)
+                print("")
+                print("Untracked branches:")
+                for _, line in graph.untracked_branch_lines():
                     print(line)
             case "long":
                 raise NotImplementedError  # not using this yet
+
+    @staticmethod
+    def _build_graph(
+        cmd: Command[Any],
+        *,
+        branch_filter: list[str] | None = None,
+        curr_branch: str,
+    ) -> Graph:
+        return Graph.build(
+            cmd._config.trunk,
+            branch_filter=branch_filter,
+            curr_branch=curr_branch,
+            store=cmd._store,
+            git=cmd._git,
+        )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -66,7 +85,7 @@ class Graph:
         cls,
         trunk: str,
         *,
-        branch_filter: list[str] | None,
+        branch_filter: list[str] | None = None,
         curr_branch: str,
         store: Store,
         git: GitClient,
@@ -106,17 +125,17 @@ class Graph:
             curr_branch=curr_branch,
         )
 
-    def lines(self) -> Iterable[str]:
-        def color_curr(branch: str) -> Callable[[str], str]:
-            return lambda s: f"@(cyan){s}@(reset)" if branch == self.curr_branch else s
-
+    def branch_lines(self) -> Iterable[tuple[str, str]]:
         for branch, col, num_children in self.branches:
-            color = color_curr(branch)
+            color = self._color_curr(branch)
             junctions = "" if num_children <= 1 else "─┴" * (num_children - 2) + "─┘"
-            yield ("│ " * col) + color("○") + junctions + " " + color(branch)
+            line = ("│ " * col) + color("○") + junctions + " " + color(branch)
+            yield branch, line
 
-        if self.untracked_branches:
-            yield ""
-            yield "Untracked branches:"
-            for branch in self.untracked_branches:
-                yield color_curr(branch)(f"* {branch}")
+    def untracked_branch_lines(self) -> Iterable[tuple[str, str]]:
+        for branch in self.untracked_branches:
+            line = self._color_curr(branch)(f"* {branch}")
+            yield branch, line
+
+    def _color_curr(self, branch: str) -> Callable[[str], str]:
+        return lambda s: f"@(cyan){s}@(fg-reset)" if branch == self.curr_branch else s

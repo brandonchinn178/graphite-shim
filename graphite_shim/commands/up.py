@@ -41,7 +41,8 @@ class CommandUp(Command[UpArgs]):
                     raise ValueError("Multiple children available")
                 branch = cmd._prompter.ask_oneof(
                     "Select child to go to",
-                    {child.name: child for child in children},
+                    children,
+                    render=lambda child: child.name,
                 )
             steps -= 1
 
