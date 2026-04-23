@@ -69,10 +69,26 @@ class Prompter:
 
         with hidden_cursor():
             curr_index = start_index
+            search: str | None = None
             while True:
-                for i, opt in enumerate(options):
+                opts_to_show = [
+                    (i, opt)
+                    for i, option in enumerate(options)
+                    for opt in [render(option)]
+                    if search is None or search in opt
+                ]
+                if len(opts_to_show) > 0 and not any(i == curr_index for i, _ in opts_to_show):
+                    curr_index = opts_to_show[0][0]
+                    continue
+
+                num_lines = 0
+                for i, opt in opts_to_show:
                     cursor = "@(bg-gray)>" if i == curr_index else " "
-                    print(f"@(cyan){cursor} @(yellow){render(opt)}")
+                    print(f"@(cyan){cursor} @(yellow){opt}")
+                    num_lines += 1
+                if search is not None:
+                    num_lines += 1
+                    print(f"@(gray)Filter: {search}▎")
 
                 match self.get_raw():
                     case RawKey.ENTER:
@@ -83,11 +99,19 @@ class Prompter:
                         curr_index = (curr_index + 1) % num_options
                     case RawKey.CTRL_C:
                         raise KeyboardInterrupt
+                    case RawKey.CTRL_W:
+                        search = None
+                    case RawKey.BACKSPACE:
+                        search = None if search is None or len(search) == 1 else search[:-1]
+                    case RawKey.OTHER:
+                        pass
+                    case c:
+                        search = (search or "") + c
 
                 # Move cursor back to start
-                print("\033[F" * num_options, end="")
+                print("\033[F\033[K" * num_lines, end="")
 
-    def get_raw(self) -> RawKey:
+    def get_raw(self) -> RawKey | str:
         with raw_tty():
             key = sys.stdin.read(1)
             if key == "\x1b":
@@ -101,8 +125,12 @@ class Prompter:
                 return RawKey.ENTER
             case "\x03":
                 return RawKey.CTRL_C
-            case _:
-                return RawKey.OTHER
+            case "\x17":
+                return RawKey.CTRL_W
+            case "\x7f":
+                return RawKey.BACKSPACE
+            case c:
+                return c if "\x21" <= c <= "\x7e" else RawKey.OTHER
 
 
 def colorify(msg: str, *, reset: bool = True) -> str:
@@ -149,6 +177,8 @@ class RawKey(enum.StrEnum):
     DOWN = enum.auto()
     ENTER = enum.auto()
     CTRL_C = enum.auto()
+    CTRL_W = enum.auto()
+    BACKSPACE = enum.auto()
     OTHER = enum.auto()
 
 
