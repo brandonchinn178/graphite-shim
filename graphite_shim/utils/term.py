@@ -65,8 +65,6 @@ class Prompter:
         start_index: int = 0,
     ) -> T:
         num_options = len(options)
-        print(f"@(yellow){prompt}:")
-
         with hidden_cursor():
             curr_index = start_index
             search: str | None = None
@@ -81,7 +79,8 @@ class Prompter:
                     curr_index = opts_to_show[0][0]
                     continue
 
-                num_lines = 0
+                num_lines = 1
+                print(f"@(yellow){prompt}:")
                 for i, opt in opts_to_show:
                     cursor = "@(bg-gray)>" if i == curr_index else " "
                     print(f"@(cyan){cursor} @(yellow){opt}")
@@ -90,7 +89,12 @@ class Prompter:
                     num_lines += 1
                     print(f"@(gray)Filter: {search}▎")
 
-                match self.get_raw():
+                c = self.get_raw()
+
+                # Move cursor back to start
+                print("\033[F\033[K" * num_lines, end="")
+
+                match c:
                     case RawKey.ENTER:
                         return options[curr_index]
                     case RawKey.UP:
@@ -105,11 +109,8 @@ class Prompter:
                         search = None if search is None or len(search) == 1 else search[:-1]
                     case RawKey.OTHER:
                         pass
-                    case c:
+                    case _:
                         search = (search or "") + c
-
-                # Move cursor back to start
-                print("\033[F\033[K" * num_lines, end="")
 
     def get_raw(self) -> RawKey | str:
         with raw_tty():
