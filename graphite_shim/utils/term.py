@@ -64,25 +64,29 @@ class Prompter:
         render: Callable[[T], str] = str,
         start_index: int = 0,
     ) -> T:
-        num_options = len(options)
+        all_options = list(enumerate(options))
         with hidden_cursor():
-            curr_index = start_index
+            curr_opt = all_options[start_index][0]
             search: str | None = None
             while True:
-                opts_to_show = [
-                    (i, opt)
-                    for i, option in enumerate(options)
+                filtered_opts = [
+                    (id, opt)
+                    for id, option in all_options
                     for opt in [render(option)]
                     if search is None or search in opt
                 ]
-                if len(opts_to_show) > 0 and not any(i == curr_index for i, _ in opts_to_show):
-                    curr_index = opts_to_show[0][0]
+                if len(filtered_opts) > 0 and not any(id == curr_opt for id, _ in filtered_opts):
+                    curr_opt = filtered_opts[0][0]
                     continue
 
                 num_lines = 1
+                opt_index = None
                 print(f"@(yellow){prompt}:")
-                for i, opt in opts_to_show:
-                    cursor = "@(bg-gray)>" if i == curr_index else " "
+                for i, (id, opt) in enumerate(filtered_opts):
+                    cursor = " "
+                    if id == curr_opt:
+                        cursor = "@(bg-gray)>"
+                        opt_index = i
                     print(f"@(cyan){cursor} @(yellow){opt}")
                     num_lines += 1
                 if search is not None:
@@ -95,21 +99,22 @@ class Prompter:
                 print("\033[F\033[K" * num_lines, end="")
 
                 match c:
-                    case RawKey.ENTER:
-                        return options[curr_index]
-                    case RawKey.UP:
-                        curr_index = (curr_index - 1) % num_options
-                    case RawKey.DOWN:
-                        curr_index = (curr_index + 1) % num_options
+                    case RawKey.ENTER if opt_index is not None:
+                        id, _ = filtered_opts[opt_index]
+                        return all_options[id][1]
+                    case RawKey.UP if opt_index is not None:
+                        next = (opt_index - 1) % len(filtered_opts)
+                        curr_opt, _ = filtered_opts[next]
+                    case RawKey.DOWN if opt_index is not None:
+                        next = (opt_index + 1) % len(filtered_opts)
+                        curr_opt, _ = filtered_opts[next]
                     case RawKey.CTRL_C:
                         raise KeyboardInterrupt
                     case RawKey.CTRL_W:
                         search = None
                     case RawKey.BACKSPACE:
                         search = None if search is None or len(search) == 1 else search[:-1]
-                    case RawKey.OTHER:
-                        pass
-                    case _:
+                    case _ if not isinstance(c, RawKey):
                         search = (search or "") + c
 
     def get_raw(self) -> RawKey | str:
