@@ -1,4 +1,5 @@
 import argparse
+import contextlib
 import dataclasses
 import sys
 from collections.abc import Callable
@@ -46,6 +47,11 @@ class CommandSync(Command[SyncArgs]):
                     print(" @(red)FAIL@(reset) - skipping...")
                     self._git.run(["rebase", "--abort"])
                     CommandRestack._reset(self)
+                except Exception as e:
+                    print(f" @(red)ERROR@(reset)\n{str(e).strip()}")
+                    self._git.run(["rebase", "--abort"], capture_output=True, check=False)
+                    with contextlib.suppress(Exception):
+                        CommandRestack._reset(self)
 
         print("\n@(blue)Cleaning up merged branches...")
         merged_branches = list(self._git.get_merged_branches(trunk))

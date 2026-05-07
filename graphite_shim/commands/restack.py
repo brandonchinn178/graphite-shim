@@ -83,7 +83,7 @@ class CommandRestack(Command[RestackArgs]):
 
             if is_start:
                 print(f"@(blue)Restacking {curr.name}...")
-                cmd._git.run(["switch", curr.name], stderr=subprocess.DEVNULL)
+                cmd._git.run(["switch", curr.name], stderr=subprocess.PIPE)
 
                 new_base = cmd._git.resolve_commit(curr.parent.name)
                 git_cmd = [
@@ -121,7 +121,7 @@ class CommandRestack(Command[RestackArgs]):
     def _reset(cmd: Command[Any], *, plan: RebasePlan | None = None) -> None:
         plan_ = plan or RebasePlan.load(git_dir=cmd._git.git_dir)
         plan_.clear()
-        cmd._git.run(["switch", plan_.orig_branch], stderr=subprocess.DEVNULL)
+        cmd._git.run(["switch", plan_.orig_branch], stderr=subprocess.PIPE)
 
 
 @dataclasses.dataclass(frozen=True)
