@@ -67,13 +67,13 @@ class CommandRestack(Command[RestackArgs]):
     def _restack(cmd: Command[Any], *, targets: list[BranchInfo] | None) -> None:
         if targets:
             plan = RebasePlan(
-                git_dir=cmd._git.git_dir,
+                git_dir=cmd._git.git_common_dir,
                 orig_branch=cmd._git.get_curr_branch(),
                 targets=[branch.name for branch in targets],
             )
             is_start = True
         else:
-            plan = RebasePlan.load(git_dir=cmd._git.git_dir)
+            plan = RebasePlan.load(git_dir=cmd._git.git_common_dir)
             is_start = False
 
         def run_one(plan: RebasePlan, *, is_start: bool) -> None:
@@ -119,7 +119,7 @@ class CommandRestack(Command[RestackArgs]):
 
     @staticmethod
     def _reset(cmd: Command[Any], *, plan: RebasePlan | None = None) -> None:
-        plan_ = plan or RebasePlan.load(git_dir=cmd._git.git_dir)
+        plan_ = plan or RebasePlan.load(git_dir=cmd._git.git_common_dir)
         plan_.clear()
         cmd._git.run(["switch", plan_.orig_branch], stderr=subprocess.PIPE)
 
