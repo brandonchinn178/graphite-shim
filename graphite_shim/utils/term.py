@@ -6,6 +6,7 @@ import functools
 import io
 import os
 import re
+import selectors
 import sys
 import termios
 import tty
@@ -108,7 +109,7 @@ class Prompter:
                     case RawKey.DOWN if opt_index is not None:
                         next = (opt_index + 1) % len(filtered_opts)
                         curr_opt, _ = filtered_opts[next]
-                    case RawKey.CTRL_C:
+                    case RawKey.ESC | RawKey.CTRL_C:
                         raise KeyboardInterrupt
                     case RawKey.CTRL_W:
                         search = None
@@ -119,24 +120,30 @@ class Prompter:
 
     def get_raw(self) -> RawKey | str:
         with raw_tty():
-            key = sys.stdin.read(1)
-            if key == "\x1b":
-                key += sys.stdin.read(2)
+            fd = sys.stdin.fileno()
+            key = os.read(fd, 1)
+            if key == b"\x1b":
+                # Wait a bit to see if it's a raw ESC or the start of an escape sequence
+                with selectors.DefaultSelector() as sel:
+                    sel.register(fd, selectors.EVENT_READ)
+                    if not sel.select(timeout=0.01):
+                        return RawKey.ESC
+                key += os.read(fd, 2)
         match key:
-            case "\x1b[A":
+            case b"\x1b[A":
                 return RawKey.UP
-            case "\x1b[B":
+            case b"\x1b[B":
                 return RawKey.DOWN
-            case "\r" | "\n":
+            case b"\r" | b"\n":
                 return RawKey.ENTER
-            case "\x03":
+            case b"\x03":
                 return RawKey.CTRL_C
-            case "\x17":
+            case b"\x17":
                 return RawKey.CTRL_W
-            case "\x7f":
+            case b"\x7f":
                 return RawKey.BACKSPACE
             case c:
-                return c if "\x21" <= c <= "\x7e" else RawKey.OTHER
+                return c.decode() if b"\x21" <= c <= b"\x7e" else RawKey.OTHER
 
 
 def colorify(msg: str, *, reset: bool = True) -> str:
@@ -182,6 +189,7 @@ class RawKey(enum.StrEnum):
     UP = enum.auto()
     DOWN = enum.auto()
     ENTER = enum.auto()
+    ESC = enum.auto()
     CTRL_C = enum.auto()
     CTRL_W = enum.auto()
     BACKSPACE = enum.auto()
