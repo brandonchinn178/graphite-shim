@@ -103,7 +103,6 @@ class CommandRestack(Command[RestackArgs]):
 
             rebase = cmd._git.run(git_cmd, check=False)
             if rebase.returncode > 0:
-                plan.save()
                 raise UserError("Rebase failed, resolve conflicts and run `gt continue`")
 
             cmd._store.update_parent_commit(curr.name, commit=new_base)
@@ -111,7 +110,11 @@ class CommandRestack(Command[RestackArgs]):
             StoreManager.save(cmd._store, store_dir=cmd._git.git_common_dir)
 
         while len(plan.targets) > 0:
-            run_one(plan, is_start=is_start)
+            try:
+                run_one(plan, is_start=is_start)
+            except Exception:
+                plan.save()
+                raise
             plan = dataclasses.replace(plan, targets=plan.targets[1:])
             is_start = True
 
