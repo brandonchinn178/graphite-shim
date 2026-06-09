@@ -50,10 +50,12 @@ class CommandLog(Command[LogArgs]):
                 )
                 for _, line in graph.branch_lines():
                     print(line)
-                print("")
-                print("Untracked branches:")
-                for _, line in graph.untracked_branch_lines():
-                    print(line)
+                untracked_branches = list(graph.untracked_branch_lines())
+                if untracked_branches:
+                    print("")
+                    print("Untracked branches:")
+                    for _, line in untracked_branches:
+                        print(line)
             case "long":
                 raise NotImplementedError  # not using this yet
 
