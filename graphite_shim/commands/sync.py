@@ -3,6 +3,7 @@ import contextlib
 import dataclasses
 import sys
 from collections.abc import Callable
+from pathlib import Path
 
 from graphite_shim.commands.base import Command
 from graphite_shim.commands.restack import CommandRestack
@@ -75,13 +76,22 @@ class CommandSync(Command[SyncArgs]):
         if old_sha == new_sha:
             print(f"@(green){trunk}@(reset) is up to date.")
         elif self._git.is_ff(from_=old_sha, to=new_sha):
-            if curr == trunk:
-                if self._git.query(["status", "--porcelain"]) != "":
+            if trunk_worktree := self._find_worktree_for_branch(trunk):
+                in_worktree = ["-C", trunk_worktree.as_posix()]
+                if self._git.query([*in_worktree, "status", "--porcelain"]) != "":
                     print(f"@(yellow)WARNING: {trunk} not updated, uncommitted changes found")
                     return
-                self._git.run(["reset", "--hard", new_sha])
+                self._git.run([*in_worktree, "reset", "--hard", new_sha])
             else:
                 self._git.run(["update-ref", f"refs/heads/{trunk}", new_sha, old_sha])
             print(f"@(green){trunk}@(reset) fast-forwarded to {new_sha}")
         else:
             print(f"@(yellow)WARNING: {trunk} not updated, not a fast-forward")
+
+    def _find_worktree_for_branch(self, branch: str) -> Path | None:
+        out = self._git.query(["worktree", "list", "--porcelain"])
+        for section in out.split("\n\n"):
+            parts = {k: v for line in section.splitlines() for k, v in [line.split(" ", 1)]}
+            if parts["branch"] == f"refs/heads/{branch}":
+                return Path(parts["worktree"])
+        return None
