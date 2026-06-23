@@ -94,7 +94,8 @@ class CommandRestack(Command[RestackArgs]):
             else:
                 print("@(blue)Continuing restack...")
 
-                new_base = cmd._git.query(["rev-parse", "rebase-merge/onto"])
+                onto_path = cmd._git.query(["rev-parse", "--git-path", "rebase-merge/onto"])
+                new_base = Path(onto_path).read_text().strip()
                 git_cmd = [
                     *("-c", "core.editor=true"),
                     "rebase",
