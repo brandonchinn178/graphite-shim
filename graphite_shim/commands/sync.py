@@ -91,7 +91,7 @@ class CommandSync(Command[SyncArgs]):
     def _find_worktree_for_branch(self, branch: str) -> Path | None:
         out = self._git.query(["worktree", "list", "--porcelain"])
         for section in out.split("\n\n"):
-            parts = {k: v for line in section.splitlines() for k, v in [line.split(" ", 1)]}
-            if parts["branch"] == f"refs/heads/{branch}":
+            parts = {k: v for line in section.splitlines() if " " in line for k, v in [line.split(" ", 1)]}
+            if parts.get("branch") == f"refs/heads/{branch}":
                 return Path(parts["worktree"])
         return None
