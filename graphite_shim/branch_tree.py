@@ -87,7 +87,7 @@ class BranchTree:
             return
         self._parent_map = {to: info.parent} | {
             # ruff-keep-multiline
-            k: v
+            k: v if v.name != from_ else dataclasses.replace(v, name=to)
             for k, v in self._parent_map.items()
             if k != from_
         }
