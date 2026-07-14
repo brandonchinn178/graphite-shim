@@ -28,7 +28,8 @@ class Command[Args](abc.ABC):
         if not cls.__name__.startswith("Command"):
             raise Exception("Command subclasses should be named 'CommandFoo'")
 
-        cls.__tag__ = cls.__name__.removeprefix("Command").lower()
+        if not hasattr(cls, "__tag__"):
+            cls.__tag__ = camel_to_hyphens(cls.__name__.removeprefix("Command"))
 
     @abc.abstractmethod
     def add_args(self, parser: argparse.ArgumentParser) -> Callable[[argparse.Namespace], Args]:
@@ -37,3 +38,8 @@ class Command[Args](abc.ABC):
     @abc.abstractmethod
     def run(self, args: Args) -> None:
         pass
+
+
+def camel_to_hyphens(s: str) -> str:
+    """https://stackoverflow.com/a/44969381"""
+    return "".join(["-" + c.lower() if c.isupper() else c for c in s]).lstrip("-")

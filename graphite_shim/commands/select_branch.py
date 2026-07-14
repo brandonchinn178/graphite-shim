@@ -7,19 +7,19 @@ from graphite_shim.commands.log import CommandLog
 
 
 @dataclasses.dataclass(frozen=True)
-class CheckoutArgs:
+class SelectBranchArgs:
     pass
 
 
-class CommandCheckout(Command[CheckoutArgs]):
+class CommandSelectBranch(Command[SelectBranchArgs]):
     """Interactively select branch to checkout."""
 
-    def add_args(self, parser: argparse.ArgumentParser) -> Callable[[argparse.Namespace], CheckoutArgs]:
-        return lambda _: CheckoutArgs()
+    def add_args(self, parser: argparse.ArgumentParser) -> Callable[[argparse.Namespace], SelectBranchArgs]:
+        return lambda _: SelectBranchArgs()
 
-    def run(self, args: CheckoutArgs) -> None:
+    def run(self, args: SelectBranchArgs) -> None:
         if not self._prompter:
-            raise Exception("gt checkout cannot be run non-interactively")
+            raise Exception("gt select-branch cannot be run non-interactively")
         curr = self._git.get_curr_branch()
         graph = CommandLog._build_graph(self, curr_branch=curr)
         branches = [
@@ -33,4 +33,4 @@ class CommandCheckout(Command[CheckoutArgs]):
             render=branch_lines.__getitem__,
             start_index=branches.index(curr),
         )
-        self._git.run(["switch", branch])
+        print(branch)
