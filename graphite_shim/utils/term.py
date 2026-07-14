@@ -6,12 +6,12 @@ import functools
 import io
 import os
 import re
-import selectors
+import select
 import sys
 import termios
 import tty
 from collections.abc import Callable, Generator, Sequence
-from typing import Any
+from typing import Any, TextIO
 
 FORCE_COLOR = "--color" in sys.argv
 
@@ -42,8 +42,22 @@ def suppress_output() -> Generator[None]:
 
 
 class Prompter:
+    @functools.cached_property
+    def _tty_in(self) -> TextIO:
+        if sys.stdin.isatty():
+            return sys.stdin
+        return open("/dev/tty")
+
+    @functools.cached_property
+    def _tty_out(self) -> TextIO:
+        if sys.stdout.isatty():
+            return sys.stdout
+        return open("/dev/tty", "w")
+
     def input(self, prompt: str) -> str:
-        return input(colorify(prompt))
+        self._print_tty(prompt, end="")
+        self._tty_out.flush()
+        return self._tty_in.readline().rstrip("\n")
 
     def ask(self, prompt: str, *, default: str = "") -> str:
         suffix = f" [{default}]" if default else ":"
@@ -66,7 +80,7 @@ class Prompter:
         start_index: int = 0,
     ) -> T:
         all_options = list(enumerate(options))
-        with hidden_cursor():
+        with hidden_cursor(self._tty_out):
             curr_opt = all_options[start_index][0]
             search: str | None = None
             while True:
@@ -82,22 +96,23 @@ class Prompter:
 
                 num_lines = 1
                 opt_index = None
-                print(f"@(yellow){prompt}:")
+                self._print_tty(f"@(yellow){prompt}:")
                 for i, (id, opt) in enumerate(filtered_opts):
                     cursor = " "
                     if id == curr_opt:
                         cursor = "@(bg-gray)>"
                         opt_index = i
-                    print(f"@(cyan){cursor} @(yellow){opt}")
+                    self._print_tty(f"@(cyan){cursor} @(yellow){opt}")
                     num_lines += 1
                 if search is not None:
                     num_lines += 1
-                    print(f"@(gray)Filter: {search}▎")
+                    self._print_tty(f"@(gray)Filter: {search}▎")
 
                 c = self.get_raw()
 
                 # Move cursor back to start
-                print("\033[F\033[K" * num_lines, end="")
+                self._print_tty("\033[F\033[K" * num_lines, end="")
+                self._tty_out.flush()
 
                 match c:
                     case RawKey.ENTER if opt_index is not None:
@@ -119,31 +134,10 @@ class Prompter:
                         search = (search or "") + c
 
     def get_raw(self) -> RawKey | str:
-        with raw_tty():
-            fd = sys.stdin.fileno()
-            key = os.read(fd, 1)
-            if key == b"\x1b":
-                # Wait a bit to see if it's a raw ESC or the start of an escape sequence
-                with selectors.DefaultSelector() as sel:
-                    sel.register(fd, selectors.EVENT_READ)
-                    if not sel.select(timeout=0.01):
-                        return RawKey.ESC
-                key += os.read(fd, 2)
-        match key:
-            case b"\x1b[A":
-                return RawKey.UP
-            case b"\x1b[B":
-                return RawKey.DOWN
-            case b"\r" | b"\n":
-                return RawKey.ENTER
-            case b"\x03":
-                return RawKey.CTRL_C
-            case b"\x17":
-                return RawKey.CTRL_W
-            case b"\x7f":
-                return RawKey.BACKSPACE
-            case c:
-                return c.decode() if b"\x21" <= c <= b"\x7e" else RawKey.OTHER
+        return get_raw(self._tty_in)
+
+    def _print_tty(self, msg: str, *, end: str = "\n") -> None:
+        _print(msg, end=end, get_file=lambda: self._tty_out)
 
 
 def colorify(msg: str, *, reset: bool = True) -> str:
@@ -197,8 +191,8 @@ class RawKey(enum.StrEnum):
 
 
 @contextlib.contextmanager
-def raw_tty() -> Generator[None]:
-    fd = sys.stdin.fileno()
+def raw_tty(file: TextIO) -> Generator[None]:
+    fd = file.fileno()
     old_settings = tty.setraw(fd)
     try:
         yield
@@ -206,12 +200,39 @@ def raw_tty() -> Generator[None]:
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
 
+def get_raw(file: TextIO) -> RawKey | str:
+    with raw_tty(file):
+        fd = file.fileno()
+        key = os.read(fd, 1)
+        if key == b"\x1b":
+            # Wait a bit to see if it's a raw ESC or the start of an escape sequence
+            ready, _, _ = select.select([fd], [], [], 0.01)
+            if not ready:
+                return RawKey.ESC
+            key += os.read(fd, 2)
+    match key:
+        case b"\x1b[A":
+            return RawKey.UP
+        case b"\x1b[B":
+            return RawKey.DOWN
+        case b"\r" | b"\n":
+            return RawKey.ENTER
+        case b"\x03":
+            return RawKey.CTRL_C
+        case b"\x17":
+            return RawKey.CTRL_W
+        case b"\x7f":
+            return RawKey.BACKSPACE
+        case c:
+            return c.decode() if b"\x21" <= c <= b"\x7e" else RawKey.OTHER
+
+
 @contextlib.contextmanager
-def hidden_cursor() -> Generator[None]:
-    sys.stdout.write("\033[?25l")
-    sys.stdout.flush()
+def hidden_cursor(file: TextIO) -> Generator[None]:
+    file.write("\033[?25l")
+    file.flush()
     try:
         yield
     finally:
-        sys.stdout.write("\033[?25h")
-        sys.stdout.flush()
+        file.write("\033[?25h")
+        file.flush()

@@ -1,11 +1,23 @@
 from __future__ import annotations
 
+import functools
+import sys
+from typing import TextIO
+
 import test.utils.expector as expector
 from graphite_shim.utils.term import Prompter, RawKey, print
 
 
 class TestPrompter(expector.ExpectorMixin, Prompter):
     __test__ = False
+
+    @functools.cached_property
+    def _tty_in(self) -> TextIO:
+        return sys.stdin
+
+    @functools.cached_property
+    def _tty_out(self) -> TextIO:
+        return sys.stdout
 
     @expector.mocked
     def _input(self, prompt: str, *, MOCK_returns: str = "") -> str:
